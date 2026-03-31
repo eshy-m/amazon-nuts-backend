@@ -2,15 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/crear-admin-seguro', function () {
-    \App\Models\User::updateOrCreate(
-        ['email' => 'admin@amazonnuts.com'],
-        [
-            'name' => 'Administrador',
-            'password' => \Illuminate\Support\Facades\Hash::make('admin123')
-        ]
-    );
-    return 'Usuario admin@amazonnuts.com creado o actualizado con éxito.';
+Route::get('/', function () {
+    return view('welcome');
 });
 // Route::get('/instalar-bd', function () {
 //     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
