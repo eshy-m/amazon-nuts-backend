@@ -2,8 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/instalar-bd', function () {
+    \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+    return '¡Magia pura! Tablas creadas y usuario administrador sembrado con éxito.';
 });
 // Route::get('/instalar-bd', function () {
 //     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
