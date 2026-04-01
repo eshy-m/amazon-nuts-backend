@@ -7,16 +7,7 @@ use App\Models\User;
 
 Route::get('/crear-admin-maestro', function () {
     try {
-        // 1. Crear el usuario
-        $user = User::firstOrCreate(
-            ['email' => 'admin@amazonnuts.com'],
-            [
-                'name' => 'Erick Sandro',
-                'password' => Hash::make('admin123')
-            ]
-        );
-
-        // 2. Crear el rol (Modo seguro directo a la base de datos)
+        // 1. PRIMERO: Crear el rol de administrador para obtener su ID
         DB::table('roles')->insertOrIgnore([
             'name' => 'admin',
             'guard_name' => 'web',
@@ -24,9 +15,22 @@ Route::get('/crear-admin-maestro', function () {
             'updated_at' => now()
         ]);
 
+        // Obtenemos el ID del rol que acabamos de crear
         $rol = DB::table('roles')->where('name', 'admin')->first();
 
-        // 3. Asignarle el rol al usuario
+        // 2. SEGUNDO: Crear el usuario pasándole el role_id obligatorio
+        $user = User::where('email', 'admin@amazonnuts.com')->first();
+        
+        if (!$user) {
+            $user = new User();
+            $user->name = 'Erick Sandro';
+            $user->email = 'admin@amazonnuts.com';
+            $user->password = Hash::make('admin123');
+            $user->role_id = $rol->id; // ¡Aquí está la solución al error 1364!
+            $user->save();
+        }
+
+        // 3. (Opcional) Guardar también en la tabla pivote de roles por si tu código la usa
         DB::table('model_has_roles')->insertOrIgnore([
             'role_id' => $rol->id,
             'model_type' => 'App\Models\User',
