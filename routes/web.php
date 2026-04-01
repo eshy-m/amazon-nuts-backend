@@ -2,15 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/conectar-mysql', function () {
-    // Comando 1: Limpiar la memoria caché para que lea las nuevas variables
-    \Illuminate\Support\Facades\Artisan::call('config:clear');
-    
-    // Comando 2: Crear las tablas de cero y plantar los datos
-    \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
-    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-    
-    return '¡Éxito! Memoria limpiada. Laravel ahora está conectado a MySQL de Railway.';
+Route::get('/test-bd', function () {
+    try {
+        // Limpiamos caché fuertemente
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        
+        // Obtenemos a la fuerza los datos de conexión actuales
+        $conexion = \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $bd = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+        
+        return "✅ ¡Conectado exitosamente! Motor: $driver | Base de datos: $bd";
+    } catch (\Exception $e) {
+        return "❌ Error fatal al conectar: " . $e->getMessage();
+    }
 });
 // Route::get('/instalar-bd', function () {
 //     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
