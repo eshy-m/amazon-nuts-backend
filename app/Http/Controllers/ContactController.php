@@ -10,18 +10,19 @@ use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
 {
+
     // 🌐 PÚBLICA: Guardar un nuevo mensaje enviado desde la web
     public function store(ContactFormRequest $request)
     {
         $message = ContactMessage::create($request->validated());
         
         try {       
-            Mail::raw("Tienes un nuevo mensaje de: {$message->sender_name}\n\nMensaje: {$message->message}", function($mail) {
+            \Illuminate\Support\Facades\Mail::raw("Tienes un nuevo mensaje de: {$message->sender_name}\n\nMensaje: {$message->message}", function($mail) {
                 $mail->to('ericksandrillo5@gmail.com')
                     ->subject('¡Nuevo mensaje en Amazon Nuts!');
             });
-        } catch(\Exception $e) {
-            Log::error('Fallo al enviar correo a Admin: ' . $e->getMessage());
+        } catch(\Throwable $e) { // 🛡️ EL CAMBIO CLAVE ESTÁ AQUÍ
+            \Illuminate\Support\Facades\Log::error('Fallo al enviar correo a Admin: ' . $e->getMessage());
         }
 
         return response()->json([
