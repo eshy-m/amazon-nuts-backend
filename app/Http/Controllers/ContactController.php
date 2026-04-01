@@ -5,24 +5,32 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ContactMessage;
 use App\Http\Requests\ContactFormRequest;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
 {
-
     // 🌐 PÚBLICA: Guardar un nuevo mensaje enviado desde la web
     public function store(ContactFormRequest $request)
     {
         $message = ContactMessage::create($request->validated());
         
         try {       
-            \Illuminate\Support\Facades\Mail::raw("Tienes un nuevo mensaje de: {$message->sender_name}\n\nMensaje: {$message->message}", function($mail) {
-                $mail->to('ericksandrillo5@gmail.com')
-                    ->subject('¡Nuevo mensaje en Amazon Nuts!');
-            });
-        } catch(\Throwable $e) { // 🛡️ EL CAMBIO CLAVE ESTÁ AQUÍ
-            \Illuminate\Support\Facades\Log::error('Fallo al enviar correo a Admin: ' . $e->getMessage());
+            // 🔥 TRUCO API: Usamos HTTP en lugar de SMTP para burlar el bloqueo de Railway
+            $response = Http::withToken(env('RESEND_API_KEY'))
+                ->post('https://api.resend.com/emails', [
+                    'from' => 'onboarding@resend.dev', // Resend exige usar este correo de prueba al inicio
+                    'to' => 'ericksandrillo5@gmail.com', // A dónde llegará
+                    'subject' => '¡Nuevo mensaje de ' . $message->sender_name . '!',
+                    'text' => "Tienes un nuevo mensaje de: {$message->sender_name}\n\nCorreo: {$message->email}\nEmpresa: {$message->company_name}\n\nMensaje: {$message->message}"
+                ]);
+
+            if (!$response->successful()) {
+                Log::error('Error de Resend: ' . $response->body());
+            }
+
+        } catch(\Throwable $e) { 
+            Log::error('Fallo crítico al enviar API: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -55,7 +63,7 @@ class ContactController extends Controller
         ], 200);
     }
 
-    // 🔐 PRIVADA: Enviar respuesta al cliente por correo
+    // 🔐 PRIVADA: Enviar respuesta al cliente por correo (También con Resend API)
     public function reply(Request $request, $id)
     {
         $request->validate([
@@ -65,10 +73,17 @@ class ContactController extends Controller
         $message = ContactMessage::findOrFail($id);
 
         try {
-            Mail::raw($request->reply_message, function($mail) use ($message) {
-                $mail->to($message->email)
-                     ->subject('Respuesta a su consulta - Amazon Nuts');
-            });
+            $response = Http::withToken(env('RESEND_API_KEY'))
+                ->post('https://api.resend.com/emails', [
+                    'from' => 'onboarding@resend.dev',
+                    'to' => $message->email,
+                    'subject' => 'Respuesta a su consulta - Amazon Nuts',
+                    'text' => $request->reply_message
+                ]);
+
+            if (!$response->successful()) {
+                return response()->json(['message' => 'Error de Resend: ' . $response->body()], 500);
+            }
 
             $message->status = 'replied';
             $message->save();
@@ -78,12 +93,9 @@ class ContactController extends Controller
                 'data' => $message
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error al responder: ' . $e->getMessage());
-            // Truco: Enviamos el error real de Gmail al frontend
-            return response()->json([
-                'message' => 'Error de Gmail: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Error de API: ' . $e->getMessage()], 500);
         }
     }
 
