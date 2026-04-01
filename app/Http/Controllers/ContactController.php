@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\ContactMessage;
 use App\Http\Requests\ContactFormRequest;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\NewContactAlert;
 use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
@@ -17,7 +16,7 @@ class ContactController extends Controller
         $message = ContactMessage::create($request->validated());
         
         try {       
-            \Illuminate\Support\Facades\Mail::raw("Tienes un nuevo mensaje de: {$message->sender_name}\n\nMensaje: {$message->message}", function($mail) {
+            Mail::raw("Tienes un nuevo mensaje de: {$message->sender_name}\n\nMensaje: {$message->message}", function($mail) {
                 $mail->to('ericksandrillo5@gmail.com')
                     ->subject('¡Nuevo mensaje en Amazon Nuts!');
             });
@@ -38,18 +37,14 @@ class ContactController extends Controller
         return response()->json($messages, 200);
     }
 
-    // 🔐 PRIVADA: Cambiar el estado de un mensaje (Leído, Respondido)
+    // 🔐 PRIVADA: Cambiar el estado de un mensaje
     public function updateStatus(Request $request, $id)
     {
-        // 1. Validamos que el estado que nos manda Angular sea válido
         $request->validate([
             'status' => 'required|in:unread,read,replied'
         ]);
 
-        // 2. Buscamos el mensaje
         $message = ContactMessage::findOrFail($id);
-        
-        // 3. Actualizamos y guardamos
         $message->status = $request->status;
         $message->save();
 
@@ -62,22 +57,18 @@ class ContactController extends Controller
     // 🔐 PRIVADA: Enviar respuesta al cliente por correo
     public function reply(Request $request, $id)
     {
-        // 1. Validamos que Angular nos envíe un texto
         $request->validate([
             'reply_message' => 'required|string'
         ]);
 
-        // 2. Buscamos el mensaje para saber a qué correo responder
         $message = ContactMessage::findOrFail($id);
 
         try {
-            // 3. Enviamos un correo de texto simple al cliente
-            \Illuminate\Support\Facades\Mail::raw($request->reply_message, function($mail) use ($message) {
+            Mail::raw($request->reply_message, function($mail) use ($message) {
                 $mail->to($message->email)
                      ->subject('Respuesta a su consulta - Amazon Nuts');
             });
 
-            // 4. Cambiamos el estado automáticamente a "Respondido"
             $message->status = 'replied';
             $message->save();
 
@@ -87,17 +78,20 @@ class ContactController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error al responder: ' . $e->getMessage());
-            return response()->json(['message' => 'Error al enviar el correo'], 500);
+            Log::error('Error al responder: ' . $e->getMessage());
+            // Truco: Enviamos el error real de Gmail al frontend
+            return response()->json([
+                'message' => 'Error de Gmail: ' . $e->getMessage()
+            ], 500);
         }
     }
 
-    // 🗑️ PRIVADA: Eliminar un mensaje (SoftDelete o permanente)
+    // 🗑️ PRIVADA: Eliminar un mensaje
     public function destroy($id)
     {
         try {
             $message = ContactMessage::findOrFail($id);
-            $message->delete(); // Si tienes SoftDeletes, esto lo manda a la papelera oculta.
+            $message->delete(); 
 
             return response()->json([
                 'message' => 'Mensaje eliminado correctamente'
