@@ -17,7 +17,7 @@ class ContactController extends Controller
         $message = ContactMessage::create($request->validated());
         
         try {       
-            Mail::to('ericksandrillo5@gmail.com')->send(new NewContactAlert($message));
+         //   Mail::to('ericksandrillo5@gmail.com')->send(new NewContactAlert($message));
         } catch(\Exception $e) {
             Log::error('Fallo al enviar correo a Admin: ' . $e->getMessage());
         }

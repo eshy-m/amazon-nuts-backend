@@ -15,12 +15,10 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+'paths' => ['api/*', 'sanctum/csrf-cookie'],
 'allowed_methods' => ['*'],
-'allowed_origins' => ['*'], // Temporalmente pon '*' para probar si así conecta
+'allowed_origins' => ['https://amazon-nuts-frontend.vercel.app'], // URL de tu Vercel
 'allowed_headers' => ['*'],
-'exposed_headers' => [],
-'max_age' => 0,
 'supports_credentials' => true,
 
 ];
