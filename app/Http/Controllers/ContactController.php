@@ -63,7 +63,8 @@ class ContactController extends Controller
         ], 200);
     }
 
-    // 🔐 PRIVADA: Enviar respuesta al cliente por correo (También con Resend API)
+   
+   // 🔐 PRIVADA: Enviar respuesta al cliente (MODO PRUEBA ANTIBLOQUEO)
     public function reply(Request $request, $id)
     {
         $request->validate([
@@ -73,28 +74,38 @@ class ContactController extends Controller
         $message = ContactMessage::findOrFail($id);
 
         try {
-            $response = Http::withToken(env('RESEND_API_KEY'))
+            // 🔥 TRUCO: Engañamos a Resend enviando el correo a tu propio Gmail
+            // para saltarnos la restricción de su versión gratuita.
+            $response = \Illuminate\Support\Facades\Http::withToken(env('RESEND_API_KEY'))
                 ->post('https://api.resend.com/emails', [
                     'from' => 'onboarding@resend.dev',
-                    'to' => $message->email,
-                    'subject' => 'Respuesta a su consulta - Amazon Nuts',
-                    'text' => $request->reply_message
+                    'to' => 'ericksandrillo5@gmail.com', // <-- AQUÍ ESTÁ LA MAGIA
+                    'subject' => 'Simulador de Respuesta - Amazon Nuts',
+                    'html' => "
+                        <h3>🚨 Prueba del Sistema de Respuestas</h3>
+                        <p><b>Originalmente este mensaje iba a ser enviado al cliente:</b> {$message->email}</p>
+                        <hr>
+                        <p><b>El cliente preguntó:</b> <br> {$message->message}</p>
+                        <br>
+                        <p><b>Tu respuesta desde el panel Admin fue:</b> <br> {$request->reply_message}</p>
+                    "
                 ]);
 
             if (!$response->successful()) {
                 return response()->json(['message' => 'Error de Resend: ' . $response->body()], 500);
             }
 
+            // Cambiamos el estado a 'replied' para que tu panel se actualice
             $message->status = 'replied';
             $message->save();
 
             return response()->json([
-                'message' => 'Respuesta enviada correctamente',
+                'message' => '¡Éxito! Respuesta simulada enviada a tu correo.',
                 'data' => $message
             ], 200);
 
         } catch (\Throwable $e) {
-            Log::error('Error al responder: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error al responder: ' . $e->getMessage());
             return response()->json(['message' => 'Error de API: ' . $e->getMessage()], 500);
         }
     }
