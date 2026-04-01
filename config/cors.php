@@ -16,19 +16,11 @@ return [
     */
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
-
-    'allowed_methods' => ['*'],
-
-    'allowed_origins' => ['https://amazon-nuts-frontend.vercel.app'],
-
-    'allowed_origins_patterns' => [],
-
-    'allowed_headers' => ['*'],
-
-    'exposed_headers' => [],
-
-    'max_age' => 0,
-
-    'supports_credentials' => false,
+'allowed_methods' => ['*'],
+'allowed_origins' => ['*'], // Temporalmente pon '*' para probar si así conecta
+'allowed_headers' => ['*'],
+'exposed_headers' => [],
+'max_age' => 0,
+'supports_credentials' => true,
 
 ];
