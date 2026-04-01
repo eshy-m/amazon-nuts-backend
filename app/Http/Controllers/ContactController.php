@@ -17,7 +17,10 @@ class ContactController extends Controller
         $message = ContactMessage::create($request->validated());
         
         try {       
-            Mail::to('ericksandrillo5@gmail.com')->send(new NewContactAlert($message));
+            \Illuminate\Support\Facades\Mail::raw("Tienes un nuevo mensaje de: {$message->sender_name}\n\nMensaje: {$message->message}", function($mail) {
+    $mail->to('ericksandrillo5@gmail.com')
+         ->subject('¡Nuevo mensaje en Amazon Nuts!');
+});
         } catch(\Exception $e) {
             Log::error('Fallo al enviar correo a Admin: ' . $e->getMessage());
         }
