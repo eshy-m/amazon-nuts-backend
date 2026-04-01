@@ -3,25 +3,19 @@
 use Illuminate\Support\Facades\Route;
 
 // Ruta principal de la API (opcional, solo para verificar que vive)
-Route::get('/', function () {
-    return ['Laravel' => app()->version(), 'Estado' => 'Conectado a MySQL'];
+Route::get('/crear-admin-maestro', function () {
+    // 1. Crear el rol si no existe (solo si usas el paquete de roles)
+    $rol = Role::firstOrCreate(['name' => 'admin']);
+
+    // 2. Crear el usuario
+    $user = User::create([
+        'name' => 'Erick Sandro',
+        'email' => 'ericksandrillo5@gmail.com',
+        'password' => Hash::make('TuClaveSegura123'), // Cambia esto por tu contraseña real
+    ]);
+
+    // 3. Asignar rol
+    $user->assignRole($rol);
+
+    return "Administrador creado con éxito. Ya puedes loguearte.";
 });
-
-// No necesitas poner las rutas de los controladores aquí si usas api.php
-// Route::get('/instalar-bd', function () {
-//     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-//     return '¡Tablas creadas con éxito, eres un hacker!';
-// });
-
-//como crear usuario y contraseña
-// Route::get('/crear-admin-seguro', function () {
-//     \App\Models\User::updateOrCreate(
-//         ['email' => 'admin@amazonnuts.com'],
-//         [
-//             'name' => 'Administrador',
-//             'password' => \Illuminate\Support\Facades\Hash::make('tu_contraseña_aqui')
-//         ]
-//     );
-//     return 'Usuario admin@amazonnuts.com creado o actualizado con éxito.';
-// });
-
