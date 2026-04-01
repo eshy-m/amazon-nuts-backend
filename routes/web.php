@@ -10,8 +10,8 @@ Route::get('/crear-admin-maestro', function () {
     // 2. Crear el usuario
     $user = User::create([
         'name' => 'Erick Sandro',
-        'email' => 'ericksandrillo5@gmail.com',
-        'password' => Hash::make('TuClaveSegura123'), // Cambia esto por tu contraseña real
+        'email' => 'admin@amazonnuts.com',
+        'password' => Hash::make('admin123'), // Cambia esto por tu contraseña real
     ]);
 
     // 3. Asignar rol
