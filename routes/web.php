@@ -2,10 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/instalar-bd', function () {
+Route::get('/conectar-mysql', function () {
+    // Comando 1: Limpiar la memoria caché para que lea las nuevas variables
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    
+    // Comando 2: Crear las tablas de cero y plantar los datos
     \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
     \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-    return '¡Magia pura! Tablas creadas y usuario administrador sembrado con éxito.';
+    
+    return '¡Éxito! Memoria limpiada. Laravel ahora está conectado a MySQL de Railway.';
 });
 // Route::get('/instalar-bd', function () {
 //     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
