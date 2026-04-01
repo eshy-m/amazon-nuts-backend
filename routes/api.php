@@ -16,7 +16,7 @@ use App\Http\Controllers\ContactController;
 // 🌐 RUTAS PÚBLICAS (No requieren Token)
 // ==========================================
 //para responder mensajes
-Route::post('/messages/{id}/reply', [ContactController::class, 'reply']);
+Route::get('/messages/{id}/reply', [ContactController::class, 'reply']);
 // Autenticación
 Route::post('/login', [AuthController::class, 'login']);
 //para eliminar
