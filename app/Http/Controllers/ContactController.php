@@ -64,51 +64,7 @@ class ContactController extends Controller
     }
 
    
-   // 🔐 PRIVADA: Enviar respuesta al cliente (MODO PRUEBA ANTIBLOQUEO)
-    public function reply(Request $request, $id)
-    {
-        $request->validate([
-            'reply_message' => 'required|string'
-        ]);
-
-        $message = ContactMessage::findOrFail($id);
-
-        try {
-            // 🔥 TRUCO: Engañamos a Resend enviando el correo a tu propio Gmail
-            // para saltarnos la restricción de su versión gratuita.
-            $response = \Illuminate\Support\Facades\Http::withToken(env('RESEND_API_KEY'))
-                ->post('https://api.resend.com/emails', [
-                    'from' => 'onboarding@resend.dev',
-                    'to' => 'ericksandrillo5@gmail.com', // <-- AQUÍ ESTÁ LA MAGIA
-                    'subject' => 'Simulador de Respuesta - Amazon Nuts',
-                    'html' => "
-                        <h3>🚨 Prueba del Sistema de Respuestas</h3>
-                        <p><b>Originalmente este mensaje iba a ser enviado al cliente:</b> {$message->email}</p>
-                        <hr>
-                        <p><b>El cliente preguntó:</b> <br> {$message->message}</p>
-                        <br>
-                        <p><b>Tu respuesta desde el panel Admin fue:</b> <br> {$request->reply_message}</p>
-                    "
-                ]);
-
-            if (!$response->successful()) {
-                return response()->json(['message' => 'Error de Resend: ' . $response->body()], 500);
-            }
-
-            // Cambiamos el estado a 'replied' para que tu panel se actualice
-            $message->status = 'replied';
-            $message->save();
-
-            return response()->json([
-                'message' => '¡Éxito! Respuesta simulada enviada a tu correo.',
-                'data' => $message
-            ], 200);
-
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Error al responder: ' . $e->getMessage());
-            return response()->json(['message' => 'Error de API: ' . $e->getMessage()], 500);
-        }
-    }
+   
 
     // 🗑️ PRIVADA: Eliminar un mensaje
     public function destroy($id)
