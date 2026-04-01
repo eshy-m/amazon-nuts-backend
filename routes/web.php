@@ -1,21 +1,40 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
-// Ruta principal de la API (opcional, solo para verificar que vive)
 Route::get('/crear-admin-maestro', function () {
-    // 1. Crear el rol si no existe (solo si usas el paquete de roles)
-    $rol = Role::firstOrCreate(['name' => 'admin']);
+    try {
+        // 1. Crear el usuario
+        $user = User::firstOrCreate(
+            ['email' => 'admin@amazonnuts.com'],
+            [
+                'name' => 'Erick Sandro',
+                'password' => Hash::make('admin123')
+            ]
+        );
 
-    // 2. Crear el usuario
-    $user = User::create([
-        'name' => 'Erick Sandro',
-        'email' => 'admin@amazonnuts.com',
-        'password' => Hash::make('admin123'), // Cambia esto por tu contraseña real
-    ]);
+        // 2. Crear el rol (Modo seguro directo a la base de datos)
+        DB::table('roles')->insertOrIgnore([
+            'name' => 'admin',
+            'guard_name' => 'web',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
 
-    // 3. Asignar rol
-    $user->assignRole($rol);
+        $rol = DB::table('roles')->where('name', 'admin')->first();
 
-    return "Administrador creado con éxito. Ya puedes loguearte.";
+        // 3. Asignarle el rol al usuario
+        DB::table('model_has_roles')->insertOrIgnore([
+            'role_id' => $rol->id,
+            'model_type' => 'App\Models\User',
+            'model_id' => $user->id
+        ]);
+
+        return "✅ Administrador creado con éxito. Correo: admin@amazonnuts.com | Clave: admin123";
+    } catch (\Throwable $e) {
+        return "🚨 Error real: " . $e->getMessage();
+    }
 });
