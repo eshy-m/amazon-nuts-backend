@@ -31,3 +31,8 @@ Route::get('/diagnostico-red', function () {
                 <p>Railway SÍ tiene acceso al puerto 587 de Gmail. El bloqueo es de contraseñas, no de red.</p>";
     }
 });
+Route::get('/login', function () {
+    return response()->json([
+        'message' => 'No estás autenticado. Inicia sesión en la aplicación.'
+    ], 401);
+})->name('login');

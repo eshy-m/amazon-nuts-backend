@@ -17,7 +17,7 @@ return [
 
 'paths' => ['api/*', 'sanctum/csrf-cookie'],
 'allowed_methods' => ['*'],
-'allowed_origins' => ['https://amazon-nuts-frontend.vercel.app'], // URL de tu Vercel
+'allowed_origins' => ['*'], // URL de tu Vercel
 'allowed_headers' => ['*'],
 'supports_credentials' => true,
 
