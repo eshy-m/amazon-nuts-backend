@@ -17,14 +17,12 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/amazon-nuts/browser/ # Asegúrate que este nombre coincida
-          server-dir: public_html/  # 👈 QUITA LA PRIMERA BARRA '/'
-          dangerous-clean-slate: true
-          # Excluimos carpetas pesadas y archivos sensibles
+          local-dir: ./ 
+          server-dir: backend/  # 👈 Apunta a la carpeta nueva que creaste
           exclude: |
             **/.git*
+            **/.github*
             **/node_modules/**
             **/vendor/**
             .env
-            storage/*.sqlite
-            tests/
+            storage/*.log
