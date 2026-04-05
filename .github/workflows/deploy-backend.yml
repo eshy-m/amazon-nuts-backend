@@ -17,6 +17,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/amazon-nuts/browser/ # Asegúrate que este nombre coincida
+          server-dir: public_html/  # 👈 QUITA LA PRIMERA BARRA '/'
           # Excluimos carpetas pesadas y archivos sensibles
           exclude: |
             **/.git*
