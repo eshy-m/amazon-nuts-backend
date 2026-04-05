@@ -1,0 +1,27 @@
+name: Despliegue Backend Amazon Nuts
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Obtener código
+        uses: actions/checkout@v3
+
+      - name: 🚀 Subir a Hostinger vía FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Excluimos carpetas pesadas y archivos sensibles
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            **/vendor/**
+            .env
+            storage/*.sqlite
+            tests/
