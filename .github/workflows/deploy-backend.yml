@@ -18,7 +18,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./ 
-          server-dir: backend/  # 👈 Apunta a la carpeta nueva que creaste
+          server-dir: backendito/  # 👈 Apunta a la carpeta nueva que creaste
           exclude: |
             **/.git*
             **/.github*
