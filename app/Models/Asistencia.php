@@ -19,7 +19,7 @@ class Asistencia extends Model
         'observaciones'
     ];
 
-    // Relación: Una asistencia pertenece a un trabajador
+    // Relación: Una asistencia pertenece a Un trabajador
     public function trabajador()
     {
         return $this->belongsTo(Trabajador::class);
