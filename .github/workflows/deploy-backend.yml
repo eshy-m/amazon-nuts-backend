@@ -1,4 +1,5 @@
 name: Despliegue Backend Amazon Nuts
+
 on:
   push:
     branches:
@@ -18,7 +19,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./ 
-          server-dir: public_html/backend/  # 👈 Esta es la ruta exacta ahora
+          # 👇 CORRECCIÓN: Le quitamos el "public_html/" para evitar el clon
+          server-dir: /backend/ 
           exclude: |
             **/.git*
             **/.github*
