@@ -39,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/messages/{id}/status', [ContactController::class, 'updateStatus']);
     Route::post('/messages/{id}/reply', [ContactController::class, 'reply']);
 
-    //crear tunel para código qr
+    //crear tunel para código qr/
     Route::get('/generar-tunel', function () {
     \Illuminate\Support\Facades\Artisan::call('storage:link');
     return '¡Túnel creado exitosamente con Laravel!';
