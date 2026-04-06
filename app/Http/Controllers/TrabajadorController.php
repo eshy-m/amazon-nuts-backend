@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Trabajador;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Carbon; // 🔥 Importante: Agregamos Carbon para manejar las fechas automáticamente
+use Illuminate\Support\Carbon; 
 
 class TrabajadorController extends Controller
 {
@@ -34,15 +33,20 @@ class TrabajadorController extends Controller
         ]);
 
         try {
-            // 2. Generamos el Código QR con el DNI
-            //$qrImage = QrCode::format('png')->size(300)->generate($request->dni);
+            // 2. Generamos el Código QR con el DNI en formato SVG
+            $qrImage = QrCode::format('svg')->size(300)->generate($request->dni);
+            $qrFileName = 'qrcodes/' . $request->dni . '.svg';
             
-            // 3. Guardamos la imagen del QR en el servidor
-            //$qrFileName = 'qrcodes/' . $request->dni . '.png';
-            // ✅ AGREGA ESTAS DOS LÍNEAS USANDO 'svg':
-$qrImage = QrCode::format('svg')->size(300)->generate($request->dni);
-$qrFileName = 'qrcodes/' . $request->dni . '.svg';
-            Storage::disk('public')->put($qrFileName, $qrImage);
+            // 3. Guardamos la imagen DIRECTO EN LA CARPETA PÚBLICA (Sin túneles)
+            $path = public_path('qrcodes');
+            
+            // Si la carpeta 'qrcodes' no existe en 'public', la creamos automáticamente con permisos 755
+            if (!file_exists($path)) {
+                mkdir($path, 0755, true);
+            }
+            
+            // Guardamos el archivo SVG físicamente
+            file_put_contents(public_path($qrFileName), $qrImage);
 
             // 4. Guardamos al trabajador en la Base de Datos con todos sus datos
             $trabajador = Trabajador::create([
@@ -63,7 +67,8 @@ $qrFileName = 'qrcodes/' . $request->dni . '.svg';
             return response()->json([
                 'message' => '¡Trabajador registrado y QR generado con éxito!',
                 'data' => $trabajador,
-                'qr_url' => asset('storage/' . $qrFileName)
+                // Ya no usamos 'storage/', apuntamos directo a la carpeta real
+                'qr_url' => asset($qrFileName) 
             ], 201);
 
         } catch (\Exception $e) {
@@ -77,7 +82,9 @@ $qrFileName = 'qrcodes/' . $request->dni . '.svg';
     public function show($id)
     {
         $trabajador = Trabajador::findOrFail($id);
-        $trabajador->qr_url = asset('storage/' . $trabajador->qr_code);
+        
+        // Ya no usamos 'storage/', apuntamos directo a la carpeta real
+        $trabajador->qr_url = asset($trabajador->qr_code);
 
         return response()->json($trabajador, 200);
     }
