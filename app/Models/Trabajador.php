@@ -27,4 +27,9 @@ class Trabajador extends Model
         'qr_code',
         'activo'
     ];
+    // Relación: Un trabajador tiene muchas asistencias
+    public function asistencias()
+    {
+        return $this->hasMany(Asistencia::class);
+    }
 }

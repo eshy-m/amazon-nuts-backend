@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PageContentController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TrabajadorController;
+use App\Http\Controllers\AsistenciaController;
 
 // 🌐 RUTAS PÚBLICAS
 Route::post('/login', [AuthController::class, 'login']);
@@ -45,10 +46,11 @@ Route::middleware('auth:sanctum')->group(function () {
     return '¡Túnel creado exitosamente con Laravel!';
 
     // Agrega esto en routes/api.php
-Route::get('/limpiar-todo', function() {
+    Route::get('/limpiar-todo', function() {
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
     return "Memoria limpia y configuración actualizada";
-});
+    });
+    Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']);
 });
 });

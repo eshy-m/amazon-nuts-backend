@@ -9,18 +9,17 @@ class Asistencia extends Model
 {
     use HasFactory;
 
-    protected $table = 'asistencias';
-
     protected $fillable = [
         'trabajador_id',
         'fecha',
         'hora_entrada',
         'hora_salida',
-        'horas_trabajadas',
-        'observacion'
+        'area_trabajo',
+        'estado',
+        'observaciones'
     ];
 
-    // Una asistencia pertenece a un trabajador
+    // Relación: Una asistencia pertenece a un trabajador
     public function trabajador()
     {
         return $this->belongsTo(Trabajador::class);
