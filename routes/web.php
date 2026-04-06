@@ -9,7 +9,11 @@ Route::get('/limpiar-cache', function () {
     Artisan::call('cache:clear');
     return "✅ Caché limpiada.";
 });
-
+//crear tunel
+Route::get('/generar-tunel', function () {
+    Artisan::call('storage:link');
+    return 'Túnel creado con éxito';
+});
 // 2. LA PRUEBA DEFINITIVA DE RED
 Route::get('/diagnostico-red', function () {
     $host = 'smtp.gmail.com';
