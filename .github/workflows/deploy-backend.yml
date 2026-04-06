@@ -9,8 +9,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      
       - name: 🚚 Obtener código
         uses: actions/checkout@v3
+
+      - name: ⚙️ Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Instalar dependencias
+        run: npm install
+
+      - name: 🏗️ Compilar Angular
+        run: npm run build
 
       - name: 🚀 Subir a Hostinger vía FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -20,7 +32,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./ 
           # 👇 CORRECCIÓN: Le quitamos el "public_html/" para evitar el clon
-          server-dir: /backend/ 
+          server-dir: /public_html/backend/
           exclude: |
             **/.git*
             **/.github*
