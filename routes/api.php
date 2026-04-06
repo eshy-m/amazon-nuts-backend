@@ -43,5 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/generar-tunel', function () {
     \Illuminate\Support\Facades\Artisan::call('storage:link');
     return '¡Túnel creado exitosamente con Laravel!';
+
+    // Agrega esto en routes/api.php
+Route::get('/limpiar-todo', function() {
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    return "Memoria limpia y configuración actualizada";
+});
 });
 });
