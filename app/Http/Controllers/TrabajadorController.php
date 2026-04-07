@@ -77,6 +77,7 @@ class TrabajadorController extends Controller
     }
 
     // ✏️ 4. ACTUALIZAR (EDITAR)
+    // ✏️ 4. ACTUALIZAR (EDITAR)
     public function update(Request $request, $id)
     {
         $trabajador = Trabajador::find($id);
@@ -85,7 +86,7 @@ class TrabajadorController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Trabajador no encontrado.'], 404);
         }
 
-        // Ignoramos el DNI actual por si no lo cambia
+        // Validamos el DNI ignorando el del trabajador actual
         $validator = Validator::make($request->all(), [
             'dni' => 'required|unique:trabajadores,dni,'.$id,
             'nombres' => 'required|string',
@@ -97,7 +98,19 @@ class TrabajadorController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 400);
         }
 
-        $trabajador->update($request->all());
+        // 🔥 LA MAGIA: Limpiamos los datos que Angular envía vacíos
+        $datos = $request->all();
+        
+        // Si la fecha viene vacía, la convertimos a NULL real para que MySQL no explote
+        if (empty($datos['fecha_inicio'])) {
+            $datos['fecha_inicio'] = null;
+        }
+
+        // Hacemos lo mismo con otros campos opcionales por si acaso
+        if (empty($datos['celular'])) $datos['celular'] = null;
+        if (empty($datos['direccion'])) $datos['direccion'] = null;
+
+        $trabajador->update($datos);
 
         return response()->json([
             'status' => 'success',
