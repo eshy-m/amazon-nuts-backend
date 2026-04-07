@@ -4,74 +4,76 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Asistencia;
-use App\Models\Trabajador;
-use Illuminate\Support\Carbon;
+use App\Models\Trabajador; // Asegúrate de tener importado el modelo del Trabajador
+use Carbon\Carbon;
 
 class AsistenciaController extends Controller
 {
-    // Función principal para escanear QR o ingresar DNI manual
     public function registrar(Request $request)
     {
+        // 1. Validamos que nos envíen el ID o DNI desde el QR
+        // Ajusta 'trabajador_id' o 'dni' según lo que envíe tu Angular actualmente
         $request->validate([
-            'dni' => 'required|string|size:8',
-            'area_trabajo' => 'required|string'
+            'trabajador_id' => 'required' 
         ]);
 
-        // 1. Buscar al trabajador
-        $trabajador = Trabajador::where('dni', $request->dni)->first();
+        // 2. Buscamos al trabajador en la base de datos
+        $trabajador = Trabajador::find($request->trabajador_id);
 
         if (!$trabajador) {
-            return response()->json(['message' => 'Trabajador no encontrado'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Trabajador no encontrado en la base de datos.'
+            ], 404);
         }
 
-        $hoy = Carbon::today()->toDateString();
+        $fechaActual = Carbon::now()->toDateString();
         $horaActual = Carbon::now()->toTimeString();
 
-        // 2. Buscar si ya tiene una asistencia hoy
-        $asistenciaHoy = Asistencia::where('trabajador_id', $trabajador->id)
-                                   ->where('fecha', $hoy)
-                                   ->first();
+        // 3. Verificamos si ya tiene registro de ENTRADA hoy
+        $asistencia = Asistencia::where('trabajador_id', $trabajador->id)
+                                ->where('fecha', $fechaActual)
+                                ->first();
 
-        // 3. Lógica de Entrada o Salida
-        if (!$asistenciaHoy) {
-            // NO TIENE REGISTRO HOY -> MARCAR ENTRADA
-            $nuevaAsistencia = Asistencia::create([
-                'trabajador_id' => $trabajador->id,
-                'fecha' => $hoy,
-                'hora_entrada' => $horaActual,
-                'area_trabajo' => $request->area_trabajo,
-                'estado' => 'Asistió'
-            ]);
+        $estadoRegistro = 'ENTRADA';
 
-            return response()->json([
-                'status' => 'entrada',
-                'message' => 'Entrada registrada correctamente',
-                'trabajador' => $trabajador->nombres . ' ' . $trabajador->apellidos,
-                'hora' => $horaActual
-            ], 200);
-
-        } else {
-            // YA TIENE REGISTRO HOY -> EVALUAR SALIDA
-            if ($asistenciaHoy->hora_salida == null) {
-                // MARCAR SALIDA
-                $asistenciaHoy->update([
-                    'hora_salida' => $horaActual
-                ]);
-
+        if ($asistencia) {
+            // Si ya tiene entrada y salida, bloqueamos
+            if ($asistencia->hora_salida) {
                 return response()->json([
-                    'status' => 'salida',
-                    'message' => 'Salida registrada correctamente',
-                    'trabajador' => $trabajador->nombres . ' ' . $trabajador->apellidos,
-                    'hora' => $horaActual
-                ], 200);
-            } else {
-                // YA MARCÓ ENTRADA Y SALIDA
-                return response()->json([
-                    'status' => 'completado',
-                    'message' => 'El trabajador ya completó su turno de hoy.',
-                    'trabajador' => $trabajador->nombres . ' ' . $trabajador->apellidos
+                    'status' => 'error',
+                    'message' => 'El trabajador ya completó su turno de hoy.'
                 ], 400);
             }
+            
+            // Si solo tiene entrada, marcamos la SALIDA
+            $asistencia->hora_salida = $horaActual;
+            $asistencia->save();
+            $estadoRegistro = 'SALIDA';
+            
+        } else {
+            // 4. No tiene registro hoy, creamos la ENTRADA
+            // AQUÍ LA MAGIA: Jalamos el área directamente del perfil del trabajador
+            Asistencia::create([
+                'trabajador_id' => $trabajador->id,
+                'fecha' => $fechaActual,
+                'hora_entrada' => $horaActual,
+                'area_trabajo' => $trabajador->area, // <-- Tomamos su área asignada
+                'estado' => 'Asistió'
+            ]);
         }
+
+        // 5. Devolvemos la data completa a Angular para la ventana flotante
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Asistencia registrada correctamente.',
+            'data' => [
+                'nombres' => $trabajador->nombres,
+                'apellidos' => $trabajador->apellidos,
+                'area' => $trabajador->area, // El área que mostraremos en verde
+                'hora' => $horaActual,
+                'estado' => $estadoRegistro // Para saber si fue entrada o salida
+            ]
+        ], 200);
     }
 }
