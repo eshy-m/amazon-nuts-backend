@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Trabajador;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Carbon; 
+use Illuminate\Support\Facades\Storage;
 
 class TrabajadorController extends Controller
 {
@@ -29,17 +30,13 @@ class TrabajadorController extends Controller
             'fecha_inicio' => 'nullable|date'
         ]);
 
-        try {
+       try {
             // Generamos el QR en SVG
             $qrImage = QrCode::format('svg')->size(300)->generate($request->dni);
             $qrFileName = 'qrcodes/' . $request->dni . '.svg';
             
-            // 👇 LA MAGIA: Guardamos físicamente en public/qrcodes/
-            $path = public_path('qrcodes');
-            if (!file_exists($path)) {
-                mkdir($path, 0755, true);
-            }
-            file_put_contents(public_path($qrFileName), $qrImage);
+            // 👇 2. LA SOLUCIÓN: Usamos Storage para guardar en la carpeta correcta
+            Storage::disk('public')->put($qrFileName, $qrImage);
 
             $trabajador = Trabajador::create([
                 'nombres' => $request->nombres,
@@ -58,7 +55,7 @@ class TrabajadorController extends Controller
             return response()->json([
                 'message' => '¡Trabajador registrado y QR generado con éxito!',
                 'data' => $trabajador,
-                'qr_url' => asset($qrFileName) 
+                'qr_url' => asset('storage/' . $qrFileName) // Retorna la URL correcta
             ], 201);
 
         } catch (\Exception $e) {

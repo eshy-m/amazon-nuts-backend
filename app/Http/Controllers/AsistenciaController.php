@@ -6,19 +6,25 @@ use Illuminate\Http\Request;
 use App\Models\Asistencia;
 use App\Models\Trabajador; // Asegúrate de tener importado el modelo del Trabajador
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Validator; 
 
 class AsistenciaController extends Controller
 {
     public function registrar(Request $request)
     {
-        // 1. Validamos que nos envíen el ID o DNI desde el QR
-        // Ajusta 'trabajador_id' o 'dni' según lo que envíe tu Angular actualmente
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'trabajador_id' => 'required' 
         ]);
+        if ($validator->fails()) {
+            // Si falta el dato, devolvemos un JSON directo, ¡Cero redirecciones!
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El código o ID del trabajador es obligatorio.'
+            ], 400); 
+        }
 
-        // 2. Buscamos al trabajador en la base de datos
-        $trabajador = Trabajador::find($request->trabajador_id);
+        // 2. Buscamos al trabajador por su columna DNI
+        $trabajador = Trabajador::where('dni', $request->trabajador_id)->first();
 
         if (!$trabajador) {
             return response()->json([
@@ -59,7 +65,7 @@ class AsistenciaController extends Controller
                 'fecha' => $fechaActual,
                 'hora_entrada' => $horaActual,
                 'area_trabajo' => $trabajador->area, // <-- Tomamos su área asignada
-                'estado' => 'Asistió'
+                //'estado' => 'Asistió'
             ]);
         }
 
