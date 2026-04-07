@@ -6,32 +6,24 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PageContentController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TrabajadorController;
-use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\AsistenciaController; 
 
-// ==========================================
-// 🌐 RUTAS PÚBLICAS GENERALES
-// ==========================================
+// 🌐 RUTAS PÚBLICAS
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/pages/{slug}', [PageContentController::class, 'getPageBySlug']);
 Route::post('/contact', [ContactController::class, 'store']);
-
-// MÓDULO ASISTENCIA: Registro por QR (Público para los trabajadores)
 Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']);
 
-// ==========================================
-// 👥 MÓDULO PERSONAL: Rutas CRUD (Temporalmente públicas para pruebas Angular)
-// ==========================================
-// ⚠️ MUY IMPORTANTE: La ruta "estadisticas" SIEMPRE debe ir ANTES que la ruta "{id}".
+// 👨‍🔧 MÓDULO TRABAJADORES (Público temporalmente para pruebas)
+// 🔥 IMPORTANTE: La ruta específica ('estadisticas') debe ir SIEMPRE antes que la dinámica ('{id}')
 Route::get('/trabajadores/estadisticas', [TrabajadorController::class, 'estadisticas']);
-Route::get('/trabajadores', [TrabajadorController::class, 'index']);           // Listar todos
-Route::post('/trabajadores', [TrabajadorController::class, 'store']);          // Crear nuevo
-Route::get('/trabajadores/{id}', [TrabajadorController::class, 'show']);       // Ver uno
-Route::put('/trabajadores/{id}', [TrabajadorController::class, 'update']);     // Editar
-Route::delete('/trabajadores/{id}', [TrabajadorController::class, 'destroy']); // Eliminar
+Route::get('/trabajadores', [TrabajadorController::class, 'index']);
+Route::post('/trabajadores', [TrabajadorController::class, 'store']);
+Route::put('/trabajadores/{id}', [TrabajadorController::class, 'update']);
+Route::delete('/trabajadores/{id}', [TrabajadorController::class, 'destroy']);
 
-// ==========================================
+
 // 🔐 RUTAS PROTEGIDAS (Panel Admin)
-// ==========================================
 Route::middleware('auth:sanctum')->group(function () {
     
     // Sesión
@@ -49,9 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/messages/{id}/reply', [ContactController::class, 'reply']);
 });
 
-// ==========================================
-// 🛠️ UTILIDADES DEL SERVIDOR
-// ==========================================
+// 🛠️ Utilidades del servidor
 Route::get('/generar-tunel', function () {
     \Illuminate\Support\Facades\Artisan::call('storage:link');
     return '¡Túnel creado exitosamente con Laravel!';
@@ -62,5 +52,5 @@ Route::get('/limpiar-todo', function() {
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
     \Illuminate\Support\Facades\Artisan::call('route:clear');
     \Illuminate\Support\Facades\Artisan::call('view:clear');
-    return 'Caché de configuración, vistas y rutas limpiada con éxito.';
+    return '¡Caché limpiada exitosamente!';
 });
