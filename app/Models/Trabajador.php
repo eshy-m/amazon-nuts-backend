@@ -9,15 +9,15 @@ class Trabajador extends Model
 {
     use HasFactory;
 
-    // Nombre de la tabla en la base de datos
+    // Nombre exacto de la tabla en la base de datos
     protected $table = 'trabajadores';
 
-    // 🔥 Agregamos todos los campos nuevos a la lista de permitidos
+    // 🔥 Lista de campos permitidos para guardado masivo (incluye los nuevos)
     protected $fillable = [
         'nombres',
         'apellidos',
         'dni',
-        'genero', // Lo mantuve por si lo sigues usando, si no, puedes borrarlo
+        'genero',
         'area',
         'celular',
         'direccion',
@@ -27,6 +27,7 @@ class Trabajador extends Model
         'qr_code',
         'activo'
     ];
+
     // Relación: Un trabajador tiene muchas asistencias
     public function asistencias()
     {

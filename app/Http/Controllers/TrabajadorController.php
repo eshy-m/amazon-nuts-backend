@@ -1,74 +1,36 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use Illuminate\Http\Request;
-use App\Models\Trabajador;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Carbon; 
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class TrabajadorController extends Controller
+class Trabajador extends Model
 {
-    public function index()
+    use HasFactory;
+
+    // Nombre exacto de la tabla en la base de datos
+    protected $table = 'trabajadores';
+
+    // 🔥 Lista de campos permitidos para guardado masivo (incluye los nuevos)
+    protected $fillable = [
+        'nombres',
+        'apellidos',
+        'dni',
+        'genero',
+        'area',
+        'celular',
+        'direccion',
+        'experiencia',
+        'observaciones',
+        'fecha_inicio',
+        'qr_code',
+        'activo'
+    ];
+
+    // Relación: Un trabajador tiene muchas asistencias
+    public function asistencias()
     {
-        $trabajadores = Trabajador::orderBy('apellidos', 'asc')->get();
-        return response()->json($trabajadores, 200);
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nombres' => 'required|string|max:255',
-            'apellidos' => 'required|string|max:255',
-            'dni' => 'required|string|size:8|unique:trabajadores,dni',
-            'area' => 'required|string',
-            'celular' => 'nullable|string|max:15',
-            'direccion' => 'nullable|string',
-            'experiencia' => 'boolean',
-            'observaciones' => 'nullable|string',
-            'fecha_inicio' => 'nullable|date'
-        ]);
-
-       try {
-            // Generamos el QR en SVG
-            $qrImage = QrCode::format('svg')->size(300)->generate($request->dni);
-            $qrFileName = 'qrcodes/' . $request->dni . '.svg';
-            
-            // 👇 2. LA SOLUCIÓN: Usamos Storage para guardar en la carpeta correcta
-            Storage::disk('public')->put($qrFileName, $qrImage);
-
-            $trabajador = Trabajador::create([
-                'nombres' => $request->nombres,
-                'apellidos' => $request->apellidos,
-                'dni' => $request->dni,
-                'area' => $request->area,
-                'celular' => $request->celular,
-                'direccion' => $request->direccion,
-                'experiencia' => $request->experiencia ?? false,
-                'observaciones' => $request->observaciones,
-                'fecha_inicio' => $request->fecha_inicio ?? Carbon::today()->toDateString(),
-                'qr_code' => $qrFileName, 
-                'activo' => true
-            ]);
-
-            return response()->json([
-                'message' => '¡Trabajador registrado y QR generado con éxito!',
-                'data' => $trabajador,
-                'qr_url' => asset('storage/' . $qrFileName) // Retorna la URL correcta
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al registrar al trabajador: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function show($id)
-    {
-        $trabajador = Trabajador::findOrFail($id);
-        $trabajador->qr_url = asset($trabajador->qr_code);
-        return response()->json($trabajador, 200);
+        return $this->hasMany(Asistencia::class);
     }
 }
