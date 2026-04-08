@@ -69,7 +69,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Application Locale Configuration
+    | Application Locale Configuracion
     |--------------------------------------------------------------------------
     |
     | The application locale determines the default locale that will be used
