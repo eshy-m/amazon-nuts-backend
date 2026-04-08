@@ -16,7 +16,9 @@ class Asistencia extends Model
         'hora_salida',
         'area_trabajo',
         'estado',
-        'observaciones'
+        'horas_trabajadas',
+        'observaciones',
+        'horas_trabajadas'
     ];
 
     // Relación: Una asistencia pertenece a Un trabajador

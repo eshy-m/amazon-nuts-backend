@@ -12,6 +12,8 @@ use App\Http\Controllers\AsistenciaController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/pages/{slug}', [PageContentController::class, 'getPageBySlug']);
 Route::post('/contact', [ContactController::class, 'store']);
+// MÓDULO ASISTENCIA
+Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);
 Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']);
 
 // 👨‍🔧 MÓDULO TRABAJADORES (Público temporalmente para pruebas)

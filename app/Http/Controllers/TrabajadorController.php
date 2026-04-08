@@ -119,7 +119,7 @@ class TrabajadorController extends Controller
         ], 200);
     }
 
-    // 🗑️ 5. ELIMINAR
+    // 🗑️ 5  . ELIMINAR
     public function destroy($id)
     {
         $trabajador = Trabajador::find($id);
