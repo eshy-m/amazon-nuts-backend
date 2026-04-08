@@ -128,4 +128,37 @@ class AsistenciaController extends Controller
             ]
         ], 200);
     }
+
+    // ==========================================
+    // 📊 3. OBTENER REPORTES HISTÓRICOS (Con Filtros)
+    // ==========================================
+    public function reportes(Request $request)
+    {
+        // Iniciamos la consulta vinculando al trabajador
+        $query = Asistencia::with('trabajador');
+
+        // 🔍 Filtro 1: Rango de Fechas
+        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
+            $query->whereBetween('fecha', [$request->fecha_inicio, $request->fecha_fin]);
+        }
+
+        // 🔍 Filtro 2: Búsqueda por Nombre o DNI
+        if ($request->has('busqueda') && $request->busqueda != '') {
+            $busqueda = $request->busqueda;
+            // Buscamos dentro de la relación 'trabajador'
+            $query->whereHas('trabajador', function($q) use ($busqueda) {
+                $q->where('dni', 'LIKE', "%{$busqueda}%")
+                  ->orWhere('nombres', 'LIKE', "%{$busqueda}%")
+                  ->orWhere('apellidos', 'LIKE', "%{$busqueda}%");
+            });
+        }
+
+        // Ordenamos por fecha (más reciente primero)
+        $reportes = $query->orderBy('fecha', 'desc')->orderBy('hora_entrada', 'asc')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $reportes
+        ], 200);
+    }
 }

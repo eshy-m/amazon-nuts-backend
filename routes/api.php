@@ -16,8 +16,11 @@ Route::post('/contact', [ContactController::class, 'store']);
 Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);
 Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']);
 
+//  NUEVA RUTA PARA LOS REPORTES
+Route::get('/asistencias/reportes', [AsistenciaController::class, 'reportes']);
+
 // 👨‍🔧 MÓDULO TRABAJADORES (Público temporalmente para pruebas)
-// 🔥 IMPORTANTE: La ruta específica ('estadisticas') debe ir SIEMPRE antes que la dinámica ('{id}')
+//  IMPORTANTE: La ruta específica ('estadisticas') debe ir SIEMPRE antes que la dinámica ('{id}')
 Route::get('/trabajadores/estadisticas', [TrabajadorController::class, 'estadisticas']);
 Route::get('/trabajadores', [TrabajadorController::class, 'index']);
 Route::post('/trabajadores', [TrabajadorController::class, 'store']);
