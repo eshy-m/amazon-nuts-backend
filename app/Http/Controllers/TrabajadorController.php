@@ -7,11 +7,13 @@ use App\Models\Trabajador;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-use SimpleSoftwareIO\QrCode\Facades\QrCode; // Si usas la librería de QRs
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class TrabajadorController extends Controller
 {
-    // 📊 1. ESTADÍSTICAS POR ÁREA (Para las tarjetas superiores)
+    // ==========================================
+    // 📊 1. ESTADÍSTICAS POR ÁREA (Tarjetas superiores)
+    // ==========================================
     public function estadisticas()
     {
         $estadisticas = Trabajador::select('area', DB::raw('count(*) as total'))
@@ -29,7 +31,9 @@ class TrabajadorController extends Controller
         ], 200);
     }
 
-    // 📋 2. LISTAR TODOS (Para tu tabla en Angular)
+    // ==========================================
+    // 📋 2. LISTAR TODOS (Para la tabla en Angular)
+    // ==========================================
     public function index()
     {
         $trabajadores = Trabajador::orderBy('id', 'desc')->get();
@@ -40,24 +44,42 @@ class TrabajadorController extends Controller
         ], 200);
     }
 
-    // ➕ 3. CREAR NUEVO TRABAJADOR
+    // ==========================================
+    // ➕ 3. CREAR NUEVO TRABAJADOR (Con Foto)
+    // ==========================================
     public function store(Request $request)
     {
+        // 1. Validamos los datos y la imagen
         $validator = Validator::make($request->all(), [
-            'dni' => 'required|unique:trabajadores,dni',
-            'nombres' => 'required|string',
-            'apellidos' => 'required|string',
-            'area' => 'required|string'
+            'dni' => 'required|unique:trabajadores',
+            'nombres' => 'required',
+            'apellidos' => 'required',
+            'condicion_laboral' => 'required',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048' // Opcional, solo imágenes, max 2MB
         ]);
-
+        
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 400);
         }
 
-        // Creamos el trabajador
-        $trabajador = Trabajador::create($request->all());
+        // 2. Extraemos todos los datos MENOS la foto (la trataremos aparte)
+        $datos = $request->except('foto');
 
-        // Generamos el QR guardándolo en storage/app/public/qrcodes/
+        // 3. Procesamos la foto si es que el usuario envió una
+        if ($request->hasFile('foto')) {
+            $archivo = $request->file('foto');
+            // Creamos un nombre único: DNI_Hora.jpg (Ej: 72445566_168456.jpg)
+            $nombreFoto = $request->dni . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+            // Guardamos en la carpeta storage/app/public/fotos_personal
+            $rutaFoto = $archivo->storeAs('fotos_personal', $nombreFoto, 'public');
+            // Añadimos la ruta al arreglo de datos que irá a la base de datos
+            $datos['foto'] = $rutaFoto;
+        }
+
+        // 4. Guardamos en la base de datos
+        $trabajador = Trabajador::create($datos);
+
+        // 5. Generamos el QR
         try {
             if (!Storage::disk('public')->exists('qrcodes')) {
                 Storage::disk('public')->makeDirectory('qrcodes');
@@ -66,7 +88,7 @@ class TrabajadorController extends Controller
                   ->size(300)
                   ->generate($trabajador->dni, storage_path('app/public/qrcodes/' . $trabajador->dni . '.svg'));
         } catch (\Exception $e) {
-            // Si no tienes instalada la librería QrCode, simplemente pasará de largo sin romper la creación
+            // Ignoramos si falla la librería de QR
         }
 
         return response()->json([
@@ -76,8 +98,9 @@ class TrabajadorController extends Controller
         ], 201);
     }
 
-    // ✏️ 4. ACTUALIZAR (EDITAR)
-    // ✏️ 4. ACTUALIZAR (EDITAR)
+    // ==========================================
+    // ✏️ 4. ACTUALIZAR / EDITAR (Con Foto)
+    // ==========================================
     public function update(Request $request, $id)
     {
         $trabajador = Trabajador::find($id);
@@ -86,30 +109,42 @@ class TrabajadorController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Trabajador no encontrado.'], 404);
         }
 
-        // Validamos el DNI ignorando el del trabajador actual
+        // Validamos asegurándonos de ignorar el DNI del trabajador actual
         $validator = Validator::make($request->all(), [
             'dni' => 'required|unique:trabajadores,dni,'.$id,
             'nombres' => 'required|string',
             'apellidos' => 'required|string',
-            'area' => 'required|string'
+            'condicion_laboral' => 'required|string',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 400);
         }
 
-        // 🔥 LA MAGIA: Limpiamos los datos que Angular envía vacíos
-        $datos = $request->all();
+        // Extraemos los datos omitiendo la foto
+        $datos = $request->except('foto');
         
-        // Si la fecha viene vacía, la convertimos a NULL real para que MySQL no explote
-        if (empty($datos['fecha_inicio'])) {
-            $datos['fecha_inicio'] = null;
-        }
-
-        // Hacemos lo mismo con otros campos opcionales por si acaso
+        // Limpiamos los datos que Angular envía vacíos
+        if (empty($datos['fecha_inicio'])) $datos['fecha_inicio'] = null;
         if (empty($datos['celular'])) $datos['celular'] = null;
         if (empty($datos['direccion'])) $datos['direccion'] = null;
 
+        // 🔥 LA MAGIA DE LA FOTO AL EDITAR
+        if ($request->hasFile('foto')) {
+            // 1. Borramos la foto anterior del servidor para ahorrar espacio
+            if ($trabajador->foto && Storage::disk('public')->exists($trabajador->foto)) {
+                Storage::disk('public')->delete($trabajador->foto);
+            }
+            
+            // 2. Guardamos la nueva foto
+            $archivo = $request->file('foto');
+            $nombreFoto = $request->dni . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+            $rutaFoto = $archivo->storeAs('fotos_personal', $nombreFoto, 'public');
+            $datos['foto'] = $rutaFoto;
+        }
+
+        // Actualizamos en la base de datos
         $trabajador->update($datos);
 
         return response()->json([
@@ -119,7 +154,9 @@ class TrabajadorController extends Controller
         ], 200);
     }
 
-    // 🗑️ 5  . ELIMINAR
+    // ==========================================
+    // 🗑️ 5. ELIMINAR
+    // ==========================================
     public function destroy($id)
     {
         $trabajador = Trabajador::find($id);
@@ -128,6 +165,12 @@ class TrabajadorController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Trabajador no encontrado.'], 404);
         }
 
+        // 🔥 OPTIMIZACIÓN: Si el trabajador tiene foto, la borramos del servidor
+        if ($trabajador->foto && Storage::disk('public')->exists($trabajador->foto)) {
+            Storage::disk('public')->delete($trabajador->foto);
+        }
+
+        // Eliminamos de la base de datos
         $trabajador->delete();
 
         return response()->json([
