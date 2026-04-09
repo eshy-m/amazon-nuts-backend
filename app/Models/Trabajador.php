@@ -9,28 +9,26 @@ class Trabajador extends Model
 {
     use HasFactory;
 
-    // Nombre exacto de la tabla en la base de datos
     protected $table = 'trabajadores';
 
-    // 🔥 Lista de campos permitidos para guardado masivo (incluye los nuevos)
     protected $fillable = [
         'nombres',
         'apellidos',
-        'condicion_laboral', // Nuevo
-        'foto',               // Nuevo
+        'condicion_laboral', 
+        'foto',               
         'dni',
+        'fecha_nacimiento', // 🔥 NUEVO
         'genero',
         'area',
-        'celular',
-        'direccion',
-        'experiencia',
-        'observaciones',
-        'fecha_inicio',
+        'fecha_inicio',     // 🔥 LA FECHA DE CONTRATO
+        'celular',       
+        'direccion',     
+        'experiencia',   
+        'observaciones', 
         'qr_code',
         'activo'
     ];
 
-    // Relación: Un trabajador tiene muchas asistencias
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class);
