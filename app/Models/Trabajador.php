@@ -27,7 +27,12 @@ class Trabajador extends Model
         'experiencia',   
         'observaciones', 
         'qr_code',
-        'activo'
+        'activo',
+        'fecha_vencimiento_carnet',
+        'contacto_emergencia',
+        'numero_emergencia',
+        'tipo_pago',
+        'cuenta_pago'
     ];
 
     public function asistencias()
