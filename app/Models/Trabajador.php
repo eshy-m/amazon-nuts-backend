@@ -17,10 +17,11 @@ class Trabajador extends Model
         'condicion_laboral', 
         'foto',               
         'dni',
-        'fecha_nacimiento', // 🔥 NUEVO
+        'fecha_nacimiento', 
         'genero',
         'area',
-        'fecha_inicio',     // 🔥 LA FECHA DE CONTRATO
+        'fecha_inicio',   
+        'fecha_fin',      
         'celular',       
         'direccion',     
         'experiencia',   
