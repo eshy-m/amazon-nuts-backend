@@ -35,6 +35,8 @@ Route::delete('/trabajadores/{id}', [TrabajadorController::class, 'destroy']);
 // ==========================================
 // 1. Lógica del Escáner QR en la puerta
 Route::post('/asistencias/qr', [AsistenciaController::class, 'registrarQR']);
+//cerrar turno automatico
+Route::get('/turnos/auto-cerrar', [TurnoPlanificadoController::class, 'autoCerrarTurnos']);
 
 // 2. Reportes y manuales (Dashboard)
 Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);

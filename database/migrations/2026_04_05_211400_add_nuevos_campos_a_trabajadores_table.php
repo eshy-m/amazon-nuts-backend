@@ -10,12 +10,12 @@ return new class extends Migration
     {
         Schema::table('trabajadores', function (Blueprint $table) {
             // Agregamos las nuevas columnas
-            $table->string('area')->nullable()->after('dni');
-            $table->string('celular', 15)->nullable()->after('area');
-            $table->string('direccion')->nullable()->after('celular');
-            $table->boolean('experiencia')->default(false)->after('direccion');
-            $table->text('observaciones')->nullable()->after('experiencia');
-            $table->date('fecha_inicio')->nullable()->after('observaciones');
+          //  $table->string('area')->nullable()->after('dni');
+          //  $table->string('celular', 15)->nullable()->after('area');
+          //  $table->string('direccion')->nullable()->after('celular');
+          //  $table->boolean('experiencia')->default(false)->after('direccion');
+          //  $table->text('observaciones')->nullable()->after('experiencia');
+          //  $table->date('fecha_inicio')->nullable()->after('observaciones');
         });
     }
 

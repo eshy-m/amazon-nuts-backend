@@ -17,7 +17,9 @@ class TurnoPlanificado extends Model
         'hora_entrada',
         'hora_salida',
         'tolerancia_minutos',
-        'estado'
+        'estado',
+        'es_nocturno',
+        'tipo_registro'
     ];
 
     // Relación: Un turno tiene muchas asistencias
