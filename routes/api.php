@@ -43,7 +43,7 @@ Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);
 Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']); // Registro manual por DNI
 Route::get('/asistencias/reportes', [AsistenciaController::class, 'reportes']);
 
-// 3. Planificación de Turnos (Ingeniero)
+// 3. Planificación de Turnos (Ingeniero).
 Route::get('/turnos', [TurnoPlanificadoController::class, 'index']);
 Route::post('/turnos', [TurnoPlanificadoController::class, 'store']);
 Route::put('/turnos/{id}/cerrar', [TurnoPlanificadoController::class, 'cerrarTurno']);
