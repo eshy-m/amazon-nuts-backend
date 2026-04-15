@@ -33,6 +33,13 @@ Route::delete('/trabajadores/{id}', [TrabajadorController::class, 'destroy']);
 // ==========================================
 // ⏱️ MÓDULO ASISTENCIA Y TURNOS
 // ==========================================
+
+// --- Rutas para los Turnos Planificados ---
+Route::get('/turnos', [TurnoPlanificadoController::class, 'index']);
+Route::post('/turnos', [TurnoPlanificadoController::class, 'store']);
+Route::put('/turnos/{id}', [TurnoPlanificadoController::class, 'update']);
+Route::delete('/turnos/{id}', [TurnoPlanificadoController::class, 'destroy']);
+Route::post('/turnos/auto-cierre', [TurnoPlanificadoController::class, 'autoCierre']); // El robot de cierre
 // 1. Lógica del Escáner QR en la puerta
 Route::post('/asistencias/qr', [AsistenciaController::class, 'registrarQR']);
 //cerrar turno automatico
