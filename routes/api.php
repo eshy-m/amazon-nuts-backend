@@ -3,13 +3,17 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Importaciones de Controladores
+// ==========================================
+// 📦 IMPORTACIÓN DE CONTROLADORES
+// ==========================================
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PageContentController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TrabajadorController;
-use App\Http\Controllers\AsistenciaController; 
-use App\Http\Controllers\TurnoPlanificadoController; // 🔥 AGREGADO: Faltaba esta importación vital
+use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\TurnoPlanificadoController;
+use App\Http\Controllers\ReporteController;
+
 
 // ==========================================
 // 🌐 RUTAS PÚBLICAS
@@ -22,7 +26,7 @@ Route::post('/contact', [ContactController::class, 'store']);
 // ==========================================
 // 👨‍🔧 MÓDULO TRABAJADORES Y RRHH
 // ==========================================
-// IMPORTANTE: Rutas específicas deben ir antes de las dinámicas con {id}
+// IMPORTANTE: Rutas específicas antes de dinámicas ({id})
 Route::get('/trabajadores/estadisticas', [TrabajadorController::class, 'estadisticas']);
 Route::get('/trabajadores', [TrabajadorController::class, 'index']);
 Route::post('/trabajadores', [TrabajadorController::class, 'store']);
@@ -31,45 +35,57 @@ Route::delete('/trabajadores/{id}', [TrabajadorController::class, 'destroy']);
 
 
 // ==========================================
+// 📊 MÓDULO DE REPORTES (PDF / EXCEL)
+// ==========================================
+Route::get('/reportes/general/pdf', [ReporteController::class, 'generalPdf']);
+Route::get('/reportes/general/excel', [ReporteController::class, 'generalExcel']);
+Route::get('/reportes/detallado/excel', [ReporteController::class, 'detalladoExcel']);
+
+Route::get('/reportes/general/pdf', [ReporteController::class, 'generalPdf']);
+Route::get('/reportes/general/excel', [ReporteController::class, 'generalExcel']);
+// Agrega esta nueva línea:
+Route::get('/reportes/detallado/pdf', [ReporteController::class, 'detalladoPdf']);
+Route::get('/reportes/detallado/excel', [ReporteController::class, 'detalladoExcel']);
+// ==========================================
 // ⏱️ MÓDULO ASISTENCIA Y TURNOS
 // ==========================================
 
-// --- Rutas para los Turnos Planificados ---
+// 🔹 Turnos planificados
 Route::get('/turnos', [TurnoPlanificadoController::class, 'index']);
 Route::post('/turnos', [TurnoPlanificadoController::class, 'store']);
 Route::put('/turnos/{id}', [TurnoPlanificadoController::class, 'update']);
 Route::delete('/turnos/{id}', [TurnoPlanificadoController::class, 'destroy']);
-Route::post('/turnos/auto-cierre', [TurnoPlanificadoController::class, 'autoCierre']); // El robot de cierre
-// 1. Lógica del Escáner QR en la puerta
-Route::post('/asistencias/qr', [AsistenciaController::class, 'registrarQR']);
-//cerrar turno automatico
-Route::get('/turnos/auto-cerrar', [TurnoPlanificadoController::class, 'autoCerrarTurnos']);
-
-// 2. Reportes y manuales (Dashboard)
-Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);
-Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']); // Registro manual por DNI
-Route::get('/asistencias/reportes', [AsistenciaController::class, 'reportes']);
-
-// 3. Planificación de Turnos (Ingeniero).
-Route::get('/turnos', [TurnoPlanificadoController::class, 'index']);
-Route::post('/turnos', [TurnoPlanificadoController::class, 'store']);
 Route::put('/turnos/{id}/cerrar', [TurnoPlanificadoController::class, 'cerrarTurno']);
 
+// 🔹 Automatización de turnos
+Route::post('/turnos/auto-cierre', [TurnoPlanificadoController::class, 'autoCierre']); // Robot
+Route::get('/turnos/auto-cerrar', [TurnoPlanificadoController::class, 'autoCerrarTurnos']);
+
+// 🔹 Asistencia (QR y manual)
+Route::post('/asistencias/qr', [AsistenciaController::class, 'registrarQR']); // Escáner QR
+Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']); // Manual (DNI)
+
+// 🔹 Consultas y reportes de asistencia
+Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);
+Route::get('/asistencias/reportes', [AsistenciaController::class, 'reportes']);
+
 
 // ==========================================
-// 🔐 RUTAS PROTEGIDAS (Panel Admin)
+// 🔐 RUTAS PROTEGIDAS (AUTH: SANCTUM)
 // ==========================================
 Route::middleware('auth:sanctum')->group(function () {
-    
-    // Sesión de Usuario
-    Route::get('/user', function (Request $request) { return $request->user(); });
+
+    // 👤 Sesión de usuario
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Gestión de Contenidos (Web)
+    // 🌐 Gestión de contenidos web
     Route::put('/contents/{id}', [PageContentController::class, 'update']);
     Route::post('/contents/upload-image', [PageContentController::class, 'uploadImage']);
 
-    // Gestión de Mensajes (Buzón de Contacto)
+    // 📬 Gestión de mensajes (contacto)
     Route::get('/messages', [ContactController::class, 'index']);
     Route::delete('/messages/{id}', [ContactController::class, 'destroy']);
     Route::put('/messages/{id}/status', [ContactController::class, 'updateStatus']);
@@ -80,14 +96,17 @@ Route::middleware('auth:sanctum')->group(function () {
 // ==========================================
 // 🛠️ UTILIDADES DEL SERVIDOR
 // ==========================================
+
+// Crear enlace simbólico (storage)
 Route::get('/generar-tunel', function () {
     \Illuminate\Support\Facades\Artisan::call('storage:link');
     return '¡Túnel creado exitosamente con Laravel!';
 });
 
-Route::get('/limpiar-todo', function() {
+// Limpiar caché del sistema
+Route::get('/limpiar-todo', function () {
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
-    // ... tus otros comandos de limpieza
+    // Puedes agregar más comandos aquí
     return '¡Caché limpiada exitosamente!';
 });
