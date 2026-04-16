@@ -16,30 +16,25 @@ class ReporteController extends Controller
 
     // ... tu función generalPdf() termina aquí arriba ...
 public function detalladoPdf(Request $request)
-    {
-        $inicio = $request->query('inicio');
-        $fin = $request->query('fin');
+{
+    $inicio = $request->query('inicio', date('Y-m-01')); // Por defecto inicio de mes
+    $fin = $request->query('fin', date('Y-m-d'));       // Por defecto hoy
 
-        $asistencias = Asistencia::with('trabajador')
-            ->whereBetween('fecha', [$inicio, $fin])
-            ->orderBy('fecha', 'desc')
-            ->get();
+    $asistencias = Asistencia::with('trabajador')
+        ->whereBetween('fecha', [$inicio, $fin])
+        ->orderBy('fecha', 'desc')
+        ->get();
 
-        // 1. Calculamos el nombre del mes basado en la fecha de inicio
-        $mes = \Carbon\Carbon::parse($inicio)->translatedFormat('F Y');
+    $data = [
+        'asistencias' => $asistencias,
+        'inicio'      => $inicio,
+        'fin'         => $fin
+    ];
 
-        $data = [
-            'asistencias' => $asistencias,
-            'inicio' => $inicio,
-            'fin' => $fin,
-            // 2. Pasamos la variable $mes a la vista
-            'mes' => $mes 
-        ];
-
-        $pdf = Pdf::loadView('reportes.pdf_detallado', $data)->setPaper('a4', 'landscape');
-        
-        return $pdf->download("Reporte_Detallado_Asistencia.pdf");
-    }
+    $pdf = Pdf::loadView('reportes.pdf_detallado', $data)->setPaper('a4', 'landscape');
+    
+    return $pdf->download("Reporte_Detallado_Asistencia.pdf");
+}
 
 
    public function detalladoExcel(Request $request) {
