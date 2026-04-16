@@ -114,8 +114,8 @@
     <div class="header-container">
         <img src="{{ public_path('img/logo_reporte.png') }}" class="logo" alt="Logo Amazon Nuts">
 
-        <h1 class="title-green">FORMATO DE ASISTENCIA AMAZON NUTS SAC</h1>
-        <p class="subtitle">ASISTENCIA MES DE {{ mb_strtoupper(str_replace(' ', ' DEL ', $mes)) }}</p>
+        <h1 class="title-green">FORMATO DE ASISTENCIA DETALLADO - AMAZON NUTS SAC</h1>
+<p class="subtitle">PERIODO: {{ $inicio }} AL {{ $fin }}</p>
     </div>
 
     <table>

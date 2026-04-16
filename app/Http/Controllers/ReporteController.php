@@ -130,11 +130,15 @@ public function detalladoPdf(Request $request)
         
         return $pdf->download("Asistencia_General_{$data['mes']}.pdf");
     }
-    public function generalExcel(Request $request) {
+   public function generalExcel(Request $request) {
+    $inicio = $request->query('inicio');
+    $fin = $request->query('fin');
+    
+    // IMPORTANTE: Verifica que la clase se llame así
     return \Maatwebsite\Excel\Facades\Excel::download(
-        new \App\Exports\AsistenciasConsolidadoExport($request->inicio, $request->fin),
-        'Reporte_Consolidado_Asistencia.xlsx'
+        new \App\Exports\AsistenciasConsolidadoExport($inicio, $fin), 
+        'Reporte_Consolidado.xlsx'
     );
 }
-
 }
+
