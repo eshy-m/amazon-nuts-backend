@@ -122,35 +122,5 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
-/*
-    |--------------------------------------------------------------------------
-    | Autoloaded Service Providers
-    |--------------------------------------------------------------------------
-    */
-    'providers' => [
-        /*
-         * Laravel Framework Service Providers...
-         */
-        Illuminate\Auth\AuthServiceProvider::class,
-        Illuminate\Broadcasting\BroadcastServiceProvider::class,
-        // ... (el resto de providers de Laravel que suelen estar aquí)
-        
-        /*
-         * Package Service Providers...
-         */
-        Barryvdh\DomPDF\ServiceProvider::class,
-    ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Class Aliases
-    |--------------------------------------------------------------------------
-    */
-    'aliases' => [
-        'App' => Illuminate\Support\Facades\App::class,
-        'Arr' => Illuminate\Support\Arr::class,
-        // ... (el resto de aliases)
-        
-        'Pdf' => Barryvdh\DomPDF\Facade\Pdf::class,
-    ],
 ];
