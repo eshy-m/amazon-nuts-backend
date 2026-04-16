@@ -9,6 +9,15 @@ Route::get('/limpiar-cache', function () {
     Artisan::call('cache:clear');
     return "✅ Caché limpiada.";
 });
+///actualizar
+
+
+Route::get('/clear-fix', function() {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('view:clear');
+    return "Sistema optimizado y cache limpia";
+});
 //crear tunel
 Route::get('/generar-tunel', function () {
     Artisan::call('storage:link');
