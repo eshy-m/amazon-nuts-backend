@@ -7,6 +7,7 @@ use App\Models\Trabajador;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Facades\Storage;
 
 class TrabajadorController extends Controller
 {
@@ -31,7 +32,7 @@ class TrabajadorController extends Controller
     // 📋 2. LISTAR TODOS
     public function index()
     {
-        $trabajadores = Trabajador::orderBy('id', 'desc')->get();
+       $trabajadores = Trabajador::with(['cargoMaestro', 'areaMaestra'])->orderBy('id', 'desc')->get();
         return response()->json(['status' => 'success', 'data' => $trabajadores], 200);
     }
 
@@ -53,16 +54,22 @@ class TrabajadorController extends Controller
         $datos = $request->except('foto');
 
         // 🔥 MAGIA PARA HOSTINGER: Guardar directo en la carpeta 'public/fotos_personal'
-        if ($request->hasFile('foto')) {
-            $archivo = $request->file('foto');
-            $nombreFoto = $request->dni . '_' . time() . '.' . $archivo->getClientOriginalExtension();
-            
-            // Movemos el archivo físicamente a la carpeta public
-            $archivo->move(public_path('fotos_personal'), $nombreFoto);
-            
-            // Guardamos la ruta relativa en la base de datos
-            $datos['foto'] = 'fotos_personal/' . $nombreFoto;
-        }
+        // FORMA CORRECTA DE GUARDAR:
+// GUARDAR FOTO
+if ($request->hasFile('foto')) {
+    $archivo = $request->file('foto');
+    $nombreFoto = $request->dni . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+    // 🟢 NUEVA FORMA: Guarda en storage/app/public/fotos_personal
+    $archivo->storeAs('fotos_personal', $nombreFoto, 'public');
+    $datos['foto'] = 'fotos_personal/' . $nombreFoto;
+}
+
+// GUARDAR QR (Busca donde generas el QR y ponlo así)
+$qrData = "Los datos de tu QR..."; 
+$qrPath = 'qrcodes/' . $request->dni . '.svg';
+// 🟢 NUEVA FORMA: Guarda el SVG en storage/app/public/qrcodes
+$qrImage = QrCode::format('svg')->size(300)->generate($qrData);
+Storage::disk('public')->put($qrPath, $qrImage);
 
         $trabajador = Trabajador::create($datos);
 
@@ -114,17 +121,17 @@ class TrabajadorController extends Controller
 
         // 🔥 MAGIA PARA HOSTINGER AL EDITAR
         if ($request->hasFile('foto')) {
-            // 1. Borramos la foto física anterior de la carpeta public
-            if ($trabajador->foto && file_exists(public_path($trabajador->foto))) {
-                unlink(public_path($trabajador->foto));
-            }
-            
-            // 2. Guardamos la nueva foto
-            $archivo = $request->file('foto');
-            $nombreFoto = $request->dni . '_' . time() . '.' . $archivo->getClientOriginalExtension();
-            $archivo->move(public_path('fotos_personal'), $nombreFoto);
-            $datos['foto'] = 'fotos_personal/' . $nombreFoto;
-        }
+    // 🟢 NUEVA FORMA DE BORRAR:
+    if ($trabajador->foto) {
+        Storage::disk('public')->delete($trabajador->foto);
+    }
+    
+    // 🟢 NUEVA FORMA DE GUARDAR:
+    $archivo = $request->file('foto');
+    $nombreFoto = $request->dni . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+    $archivo->storeAs('fotos_personal', $nombreFoto, 'public');
+    $datos['foto'] = 'fotos_personal/' . $nombreFoto;
+}
 
         $trabajador->update($datos);
 

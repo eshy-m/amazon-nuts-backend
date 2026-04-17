@@ -19,12 +19,19 @@ class TurnoPlanificado extends Model
         'tolerancia_minutos',
         'estado',
         'es_nocturno',
-        'tipo_registro'
+        'tipo_registro',
+        'area_id'
     ];
 
     // Relación: Un turno tiene muchas asistencias
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class, 'turno_id');
+    }
+
+    
+    public function areaMaestra()
+    {
+        return $this->belongsTo(Area::class, 'area_id');
     }
 }

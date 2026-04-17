@@ -32,9 +32,19 @@ class Trabajador extends Model
         'contacto_emergencia',
         'numero_emergencia',
         'tipo_pago',
-        'cuenta_pago'
+        'cuenta_pago',
+        'cargo_id',
+        'turno_id',
+        'area_id'
     ];
-
+    public function cargoMaestro()
+    {
+        return $this->belongsTo(Cargo::class, 'cargo_id');
+    }
+    public function areaMaestra() 
+    {
+        return $this->belongsTo(Area::class, 'area_id');
+    }
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class);

@@ -115,3 +115,8 @@ Route::get('/limpiar-todo', function () {
     // Puedes agregar más comandos aquí
     return '¡Caché limpiada exitosamente!';
 });
+// Rutas para Tablas Maestras (Configuración).
+Route::get('/maestros/cargos', [App\Http\Controllers\MaestrosController::class, 'getCargos']);
+Route::post('/maestros/cargos', [App\Http\Controllers\MaestrosController::class, 'storeCargo']);
+Route::get('/maestros/areas', [App\Http\Controllers\MaestrosController::class, 'getAreas']);
+Route::post('/maestros/areas', [App\Http\Controllers\MaestrosController::class, 'storeArea']);
