@@ -53,7 +53,9 @@ public function detalladoPdf(Request $request)
         $fechaFin = Carbon::parse($request->query('fin', Carbon::now()->endOfMonth()));
 
         // 1. Obtener todos los trabajadores (Ya corregido, sin el filtro de estado)
-        $trabajadores = Trabajador::orderBy('nombres')->get();
+        $trabajadores = Trabajador::whereHas('asistencias', function($q) use ($fechaInicio, $fechaFin) {
+            $q->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+        })->orderBy('nombres')->get();
         
         // 2. Crear la lista de días para las columnas de la tabla
         $diasDelMes = [];

@@ -18,7 +18,7 @@ class AsistenciasDetalladoExport implements FromView, ShouldAutoSize
     }
 
     public function view(): View {
-        $asistencias = Asistencia::with('trabajador')
+        $asistencias = Asistencia::with(['trabajador', 'turno']) // <-- AGREGAMOS 'turno'
             ->whereBetween('fecha', [$this->inicio, $this->fin])
             ->orderBy('fecha', 'desc')
             ->get();

@@ -25,7 +25,10 @@ class AsistenciasConsolidadoExport implements FromView, ShouldAutoSize
         $periodo = CarbonPeriod::create($fechaInicio, $fechaFin);
         $dias = iterator_to_array($periodo);
 
-        $trabajadores = Trabajador::orderBy('nombres', 'asc')->get();
+        $trabajadores = Trabajador::whereHas('asistencias', function($q) {
+            $q->whereBetween('fecha', [$this->inicio, $this->fin]);
+        })->orderBy('nombres', 'asc')->get();   
+
         $asistencias = Asistencia::whereBetween('fecha', [$this->inicio, $this->fin])->get();
 
         $matriz = [];

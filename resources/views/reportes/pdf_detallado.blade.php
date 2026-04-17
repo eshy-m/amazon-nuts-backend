@@ -39,6 +39,7 @@
                 <th>INGRESO</th>
                 <th>SALIDA</th>
                 <th>HORAS</th>
+                <th>HORAS EXTRAS</th>
                 <th>ESTADO</th>
             </tr>
         </thead>
@@ -53,6 +54,7 @@
                 <td>{{ $asistencia->hora_ingreso ?? '--:--' }}</td>
                 <td>{{ $asistencia->hora_salida ?? '--:--' }}</td>
                 <td style="font-weight: bold;">{{ $asistencia->horas_trabajadas ?? '0.00' }}</td>
+                <td style="font-weight: bold;">{{ $asistencia->horas_extras ?? '0.00' }}</td>
                 <td class="{{ strtolower($asistencia->estado) }}">
                     {{ strtoupper($asistencia->estado) }}
                 </td>

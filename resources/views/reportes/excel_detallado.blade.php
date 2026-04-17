@@ -19,6 +19,7 @@
             <th style="border: 1px solid #000;">INGRESO</th>
             <th style="border: 1px solid #000;">SALIDA</th>
             <th style="border: 1px solid #000;">HORAS TRABAJADAS</th>
+            <th style="border: 1px solid #000;">HORAS EXTRAS</th>
             <th style="border: 1px solid #000;">ESTADO</th>
         </tr>
     </thead>
@@ -32,6 +33,7 @@
             <td style="border: 1px solid #000;">{{ $a->hora_ingreso }}</td>
             <td style="border: 1px solid #000;">{{ $a->hora_salida ?? '---' }}</td>
             <td style="border: 1px solid #000; font-weight: bold; text-align: center;">{{ $a->horas_trabajadas ?? '0.00' }}</td>
+            <td style="border: 1px solid #000; font-weight: bold; text-align: center;">{{ $a->horas_extras ?? '0.00' }}</td>
             <td style="border: 1px solid #000; color: {{ $a->estado == 'Falta' ? '#dc2626' : '#000' }};">
                 {{ $a->estado }}
             </td>
