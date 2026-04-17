@@ -13,6 +13,7 @@ use App\Http\Controllers\TrabajadorController;
 use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\TurnoPlanificadoController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\DashboardController;
 
 
 // ==========================================
@@ -69,6 +70,10 @@ Route::post('/asistencias/registrar', [AsistenciaController::class, 'registrar']
 Route::get('/asistencias/hoy', [AsistenciaController::class, 'hoy']);
 Route::get('/asistencias/reportes', [AsistenciaController::class, 'reportes']);
 
+//Dashboard 
+
+Route::get('/dashboard/metricas', [DashboardController::class, 'obtenerMetricasDiarias']);
+Route::get('/asistencias/dashboard/metricas', [App\Http\Controllers\AsistenciaController::class, 'metricasDashboard']);
 
 // ==========================================
 // 🔐 RUTAS PROTEGIDAS (AUTH: SANCTUM)

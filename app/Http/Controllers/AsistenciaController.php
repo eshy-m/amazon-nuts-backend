@@ -225,4 +225,47 @@ class AsistenciaController extends Controller
             'data' => $reportes
         ], 200);
     }
+    public function metricasDashboard()
+    {
+        $hoy = date('Y-m-d');
+        
+        // 1. Cálculos para los KPIs (Tarjetas superiores)
+        $totalPersonal = Trabajador::count();
+        $presentesHoy = Asistencia::where('fecha', $hoy)->count();
+        $faltasHoy = $totalPersonal - $presentesHoy;
+        $tardanzasHoy = Asistencia::where('fecha', $hoy)->where('estado', 'Tardanza')->count();
+        
+        $porcentaje = $totalPersonal > 0 ? round(($presentesHoy / $totalPersonal) * 100) : 0;
+
+        // 2. Cálculos para el Gráfico de Dona (Agrupar asistencias de hoy por área)
+        $asistenciasHoy = Asistencia::with('trabajador')->where('fecha', $hoy)->get();
+        
+        $areasCount = [];
+        foreach ($asistenciasHoy as $asistencia) {
+            $area = $asistencia->trabajador->area ?? 'Sin Área';
+            if (!isset($areasCount[$area])) {
+                $areasCount[$area] = 0;
+            }
+            $areasCount[$area]++;
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'kpis' => [
+                    'total_personal' => $totalPersonal,
+                    'presentes_hoy' => $presentesHoy,
+                    'faltas_hoy' => $faltasHoy < 0 ? 0 : $faltasHoy,
+                    'tardanzas_hoy' => $tardanzasHoy,
+                    'porcentaje_asistencia' => $porcentaje
+                ],
+                'graficos' => [
+                    'areas' => [
+                        'labels' => array_keys($areasCount),
+                        'data' => array_values($areasCount)
+                    ]
+                ]
+            ]
+        ]);
+    }
 }
