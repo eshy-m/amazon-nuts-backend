@@ -95,6 +95,16 @@ class OperacionesController extends Controller
     // ==========================================
     public function metricasEnVivo($lote_id)
     {
+        $ultimo = MuestreoCalibracion::where('lote_id', $lote_id)->latest()->first();
+        // 2. Buscamos los últimos 5 tests para la tabla de historial
+        $historial = MuestreoCalibracion::where('lote_id', $lote_id)
+            ->orderBy('created_at', 'desc')
+            ->take(5) // Solo los 5 más recientes
+            ->get();
+
+
+
+
         $lote = LoteProduccion::find($lote_id);
         if (!$lote) return response()->json(['error' => 'Lote no encontrado'], 404);
 
@@ -102,7 +112,7 @@ class OperacionesController extends Controller
         $pesajes = PesajeSeleccion::where('lote_id', $lote_id)->get();
 
         $ultimoMuestreo = MuestreoCalibracion::where('lote_id', $lote_id)->latest()->first();
-    $porcentajeMuestreo = $ultimoMuestreo ? $ultimoMuestreo->porcentaje_partida : 0;
+        $porcentajeMuestreo = $ultimoMuestreo ? $ultimoMuestreo->porcentaje_partida : 0;
 
         $totalPrimera = $pesajes->where('categoria', 'Primera')->sum('peso');
         $totalPartida = $pesajes->where('categoria', 'Partida')->sum('peso');
@@ -125,9 +135,16 @@ class OperacionesController extends Controller
                 'total_procesado' => $totalProcesado,
                 'porcentaje_partida_global' => $porcentajePartidaGlobal,
                 'porcentaje_avance' => $porcentajeAvance,
-                'porcentaje_partida_muestreo' => $porcentajeMuestreo, // <--- Enviamos este dato nuevo
-                'alerta_partida' => ($porcentajePartidaGlobal > 13 || $porcentajeMuestreo > 13) // Se activa si CUALQUIERA de los dos falla
-            ]
+                //'porcentaje_partida_muestreo' => $porcentajeMuestreo, // <--- Enviamos este dato nuevo
+                'alerta_partida' => ($porcentajePartidaGlobal > 13 || $porcentajeMuestreo > 13), // Se activa si CUALQUIERA de los dos falla
+                // Datos para el "Muestreo Actual" de la cabecera
+                'porcentaje_partida_muestreo' => $ultimo ? $ultimo->porcentaje_partida : 0,
+                'ultimo_peso_entera'  => $ultimo ? $ultimo->peso_entera : 0,
+                'ultimo_peso_partida' => $ultimo ? $ultimo->peso_partida : 0,
+                'ultimo_peso_ojos'    => $ultimo ? $ultimo->peso_ojos : 0,
+                'ultimo_peso_podrido' => $ultimo ? $ultimo->peso_podrido : 0,
+            ],
+            'historial_muestreos' => $historial
         ]);
     }
     
