@@ -10,6 +10,13 @@ Route::get('/limpiar-cache', function () {
     return "✅ Caché limpiada.";
 });
 ///actualizar
+// Ruta principal para evitar el error 404
+// Route::get('/', function () {
+//     return response()->json([
+//         'status' => 'success',
+//         'message' => 'API Amazon Nuts corriendo correctamente. Usa /api/ para los endpoints.',
+//     ]);
+// });
 
 
 Route::get('/clear-fix', function() {

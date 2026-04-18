@@ -11,261 +11,125 @@ use Illuminate\Support\Facades\Validator;
 
 class AsistenciaController extends Controller
 {
-    // ==========================================
-    // 📋 1. OBTENER ASISTENCIAS DE HOY
-    // ==========================================
-    public function hoy()
+   public function registrar(Request $request)
     {
-        $fechaActual = Carbon::now()->toDateString();
-        
-        // Traemos asistencias de hoy con datos del trabajador Y DE SU TURNO
-        $asistencias = Asistencia::with(['trabajador', 'turno'])
-            ->where('fecha', $fechaActual)
-            ->orderBy('updated_at', 'desc') 
-            ->get();
-
-        return response()->json([
-            'status' => 'success', 
-            'data' => $asistencias
-        ], 200);
-    }
-
-    // ==========================================
-    // ✍️ 2. REGISTRO MANUAL (Acepta DNI o ID)
-    // ==========================================
-    public function registrar(Request $request)
-    {
+        // 1. Validación básica
         $validator = Validator::make($request->all(), [
             'trabajador_id' => 'required'
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'message' => 'El código del trabajador es obligatorio.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'ID de trabajador requerido'], 400);
         }
 
-        $input = $request->trabajador_id;
-
-        // Buscamos por DNI primero, y si no, por ID del sistema.
-        $trabajador = Trabajador::where('dni', $input)
-                                ->orWhere('id', $input)
-                                ->first();
-        
-        if (!$trabajador) {
-            return response()->json(['status' => 'error', 'message' => 'Trabajador no encontrado en la base de datos.'], 404);
-        }
-
-        if (!$trabajador->activo) {
-            return response()->json(['status' => 'error', 'message' => 'Trabajador inactivo o cesado.'], 403);
-        }
-
-        // Llamamos al "Cerebro" para procesar
-        $respuesta = $this->procesarAsistencia($trabajador);
-        
-        return response()->json($respuesta, 200);
-    }
-
-    // ==========================================
-    // 📷 3. REGISTRO POR CÓDIGO QR 
-    // ==========================================
-    public function registrarQR(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'dni' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'message' => 'El DNI es obligatorio.'], 400);
-        }
-
-        $trabajador = Trabajador::where('dni', $request->dni)->first();
-        
-        if (!$trabajador) {
-            return response()->json(['status' => 'error', 'message' => 'DNI no registrado en el sistema.'], 404);
-        }
-
-        if (!$trabajador->activo) {
-            return response()->json(['status' => 'error', 'message' => 'Trabajador inactivo o cesado.'], 403);
-        }
-
-        // Llamamos al "Cerebro" para procesar
-        $respuesta = $this->procesarAsistencia($trabajador);
-        return response()->json($respuesta, 200);
-    }
-
-    // ==========================================
-    // 🧠 EL "CEREBRO": Lógica central de Entrada/Salida
-    // ==========================================
-    private function procesarAsistencia($trabajador)
-    {
-        $ahora = Carbon::now();
-        $fechaHoy = $ahora->toDateString();
-
-        // PASO 1: VERIFICAR SI HAY UN INGRESO SIN CERRAR (En las últimas 24 hrs)
-        // PASO 1: VERIFICAR SI HAY UN INGRESO SIN CERRAR (En las últimas 24 hrs)
-        $asistenciaAbierta = Asistencia::where('trabajador_id', $trabajador->id)
-            ->whereNull('hora_salida')
-            ->where('created_at', '>=', $ahora->copy()->subHours(24))
+        // 2. Identificar al trabajador (por ID o DNI)
+        $trabajador = Trabajador::with(['areaMaestra'])
+            ->where('id', $request->trabajador_id)
+            ->orWhere('dni', $request->trabajador_id)
             ->first();
 
-        if ($asistenciaAbierta) {
-            // ES UNA SALIDA
-            $asistenciaAbierta->hora_salida = $ahora;
-            
-            // 🔥 NUEVO: Cálculo exacto de horas trabajadas (con 2 decimales, ej: 8.50)
-            $horaEntrada = Carbon::parse($asistenciaAbierta->hora_ingreso);
-            $horasTrabajadas = round($horaEntrada->floatDiffInHours($ahora), 2);
-            
-            $asistenciaAbierta->horas_trabajadas = $horasTrabajadas;
-            $asistenciaAbierta->save();
-
-            return [
-                'status' => 'success',
-                'message' => 'Salida registrada correctamente. Total: ' . $horasTrabajadas . ' horas.',
-                'data' => [
-                    'tipo' => 'salida',
-                    'nombres' => $trabajador->nombres . ' ' . $trabajador->apellidos,
-                    'hora' => $ahora->format('H:i A'),
-                    'estado' => 'Salida'
-                ]
-            ];
+        if (!$trabajador) {
+            return response()->json(['status' => 'error', 'message' => 'Trabajador no encontrado'], 404);
         }
-        // PASO 2: ES UN INGRESO. BUSCAMOS EL TURNO PLANIFICADO PARA HOY Y SU ÁREA
-        $turno = TurnoPlanificado::where('fecha', $fechaHoy)
-            ->where('area', $trabajador->area)
+
+        $ahora = Carbon::now();
+        $fechaActual = $ahora->toDateString();
+        $horaActual = $ahora->format('H:i:s'); // Formato exacto HH:MM:SS para MySQL TIME
+
+        // 3. Buscar turno activo para el área
+        $turno = TurnoPlanificado::where('area_id', $trabajador->area_id)
+            ->where('fecha', $fechaActual)
             ->where('estado', 'Activo')
             ->first();
 
-        $estadoRegistro = 'Puntual'; // Por defecto lo asumimos Puntual
-        $turnoId = null;
-
-        if ($turno) {
-            // ESCENARIO A: TIENE TURNO HOY
-            $turnoId = $turno->id;
-            
-            $horaIngresoOficial = Carbon::parse($fechaHoy . ' ' . $turno->hora_entrada);
-            $horaLimite = $horaIngresoOficial->copy()->addMinutes($turno->tolerancia_minutos);
-
-            if ($ahora->greaterThan($horaLimite)) {
-                $estadoRegistro = 'Tardanza';
-            }
-
-        } else {
-            // ESCENARIO B: NO TIENE TURNO HOY. Buscamos el último turno que tuvo su área.
-            $turnoHistorico = TurnoPlanificado::where('area', $trabajador->area)
-                ->where('estado', 'Activo')
-                ->orderBy('fecha', 'desc') // Traemos el más reciente
-                ->first();
-
-            if ($turnoHistorico) {
-                // Usamos la hora esperada y tolerancia de su último turno, pero aplicados a la fecha de HOY
-                $horaIngresoReferencia = Carbon::parse($fechaHoy . ' ' . $turnoHistorico->hora_entrada);
-                $horaLimite = $horaIngresoReferencia->copy()->addMinutes($turnoHistorico->tolerancia_minutos);
-
-                if ($ahora->greaterThan($horaLimite)) {
-                    $estadoRegistro = 'Tardanza';
-                } else {
-                    $estadoRegistro = 'Puntual';
-                }
-            } else {
-                // ESCENARIO C: NUNCA se ha creado un turno para esta área.
-                $estadoRegistro = 'Presente (Sin turno)';
-            }
+        if (!$turno) {
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'No hay turno planificado hoy para el área: ' . ($trabajador->areaMaestra->nombre ?? 'N/A')
+            ], 403);
         }
 
-        // Creamos el registro de entrada
-        Asistencia::create([
-            'trabajador_id' => $trabajador->id,
-            'turno_id' => $turnoId, // Puede ser null si entró por Escenario B o C
-            'fecha' => $fechaHoy,
-            'hora_ingreso' => $ahora,
-            'estado' => $estadoRegistro,
+        // 4. Buscar registro existente hoy
+        $asistencia = Asistencia::where('trabajador_id', $trabajador->id)
+            ->where('fecha', $fechaActual)
+            ->first();
+
+        // --- LÓGICA DE ENTRADA ---
+        if (!$asistencia) {
+            $horaConfigurada = Carbon::parse($turno->hora_entrada);
+            $tolerancia = $turno->tolerancia_minutos ?? 0;
+            
+            // Si la hora actual supera la entrada + tolerancia -> Tardanza
+            $estado = $ahora->gt($horaConfigurada->addMinutes($tolerancia)) ? 'Tardanza' : 'Presente';
+
+            // Usamos create para asegurar que se apliquen los $fillable y $casts
+            $nuevaAsistencia = Asistencia::create([
+                'trabajador_id' => $trabajador->id,
+                'turno_id'      => $turno->id,
+                'fecha'         => $fechaActual,
+                'hora_entrada'  => $horaActual,
+                'estado'        => $estado
+            ]);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'ENTRADA MARCADA: ' . $estado,
+                'data'    => $nuevaAsistencia->load('trabajador.areaMaestra')
+            ]);
+        }
+
+        // --- LÓGICA DE SALIDA ---
+        if (!$asistencia->hora_salida || $asistencia->hora_salida == '00:00:00') {
+            $asistencia->hora_salida = $horaActual;
+            $asistencia->save();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'SALIDA MARCADA EXITOSAMENTE',
+                'data'    => $asistencia->load('trabajador.areaMaestra')
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'warning', 
+            'message' => 'Ya registraste entrada y salida el día de hoy.'
         ]);
-
-        return [
-            'status' => 'success',
-            'message' => 'Ingreso registrado correctamente.',
-            'data' => [
-                'tipo' => 'ingreso',
-                'nombres' => $trabajador->nombres . ' ' . $trabajador->apellidos,
-                'hora' => $ahora->format('H:i A'),
-                'estado' => $estadoRegistro
-            ]
-        ];
     }
-
+    public function hoy()
+    {
+        $fechaActual = Carbon::now()->toDateString();
+        $asistencias = Asistencia::with(['trabajador.areaMaestra', 'turno'])
+            ->where('fecha', $fechaActual)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        return response()->json(['status' => 'success', 'data' => $asistencias]);
+    }
     // ==========================================
-    // 📊 4. OBTENER REPORTES HISTÓRICOS (Con Filtros)
+    // 📊 5. OBTENER REPORTES HISTÓRICOS (FILTRO POR FECHAS)
     // ==========================================
     public function reportes(Request $request)
     {
-        // Traemos datos del trabajador y de su turno
-        $query = Asistencia::with(['trabajador', 'turno']);
+        // 1. Recibimos las fechas desde Angular
+        $fechaInicio = $request->query('fecha_inicio');
+        $fechaFin = $request->query('fecha_fin');
 
-        // Filtro: Rango de Fechas
-        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
-            $query->whereBetween('fecha', [$request->fecha_inicio, $request->fecha_fin]);
+        // 2. Preparamos la consulta incluyendo las relaciones para que se vea el Área
+        $query = Asistencia::with(['trabajador.areaMaestra', 'turno']);
+
+        // 3. Aplicamos el filtro de fechas si Angular las envió
+        if ($fechaInicio && $fechaFin) {
+            $query->whereBetween('fecha', [$fechaInicio, $fechaFin]);
         }
 
-        // Nota: La búsqueda por texto (DNI/Nombres) ahora la hace Angular en vivo, 
-        // pero dejamos esto como respaldo por si luego lo necesitas desde el servidor.
-        if ($request->has('busqueda') && $request->busqueda != '') {
-            $busqueda = $request->busqueda;
-            $query->whereHas('trabajador', function($q) use ($busqueda) {
-                $q->where('dni', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('nombres', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('apellidos', 'LIKE', "%{$busqueda}%");
-            });
-        }
+        // 4. Obtenemos los datos ordenados (los más recientes primero)
+        $reportes = $query->orderBy('fecha', 'desc')
+                          ->orderBy('hora_entrada', 'asc')
+                          ->get();
 
-        // Ordenamos por fecha y hora de ingreso
-        $reportes = $query->orderBy('fecha', 'desc')->orderBy('hora_ingreso', 'asc')->get();
-
+        // 5. Devolvemos la respuesta al Frontend
         return response()->json([
             'status' => 'success',
             'data' => $reportes
-        ], 200);
-    }
-    public function metricasDashboard()
-    {
-        $hoy = date('Y-m-d');
-        
-        // 1. Cálculos para los KPIs (Tarjetas superiores)
-        $totalPersonal = Trabajador::count();
-        $presentesHoy = Asistencia::where('fecha', $hoy)->count();
-        $faltasHoy = $totalPersonal - $presentesHoy;
-        $tardanzasHoy = Asistencia::where('fecha', $hoy)->where('estado', 'Tardanza')->count();
-        
-        $porcentaje = $totalPersonal > 0 ? round(($presentesHoy / $totalPersonal) * 100) : 0;
-
-        // 2. Cálculos para el Gráfico de Dona (Agrupar asistencias de hoy por área)
-        $asistenciasHoy = Asistencia::with('trabajador')->where('fecha', $hoy)->get();
-        
-        $areasCount = [];
-        foreach ($asistenciasHoy as $asistencia) {
-            $area = $asistencia->trabajador->area ?? 'Sin Área';
-            if (!isset($areasCount[$area])) {
-                $areasCount[$area] = 0;
-            }
-            $areasCount[$area]++;
-        }
-
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'kpis' => [
-                    'total_personal' => $totalPersonal,
-                    'presentes_hoy' => $presentesHoy,
-                    'faltas_hoy' => $faltasHoy < 0 ? 0 : $faltasHoy,
-                    'tardanzas_hoy' => $tardanzasHoy,
-                    'porcentaje_asistencia' => $porcentaje
-                ],
-                'graficos' => [
-                    'areas' => [
-                        'labels' => array_keys($areasCount),
-                        'data' => array_values($areasCount)
-                    ]
-                ]
-            ]
         ]);
     }
 }

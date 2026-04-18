@@ -10,13 +10,26 @@ class Asistencia extends Model
 {
     use HasFactory;
 
+    protected $table = 'asistencias';
+
     protected $fillable = [
-        'trabajador_id', 'turno_id', 'fecha', 'hora_ingreso', 'hora_salida', 'estado', 'observaciones'
+        'trabajador_id', 
+        'turno_id', 
+        'fecha', 
+        'hora_entrada', 
+        'hora_salida', 
+        'estado', 
+        'observaciones'
     ];
 
-    // 🔥 ESTO ES NUEVO: Le decimos a Laravel que siempre adjunte este cálculo al JSON
-    protected $appends = ['horas_extras'];
-
+    // REPOTENCIADO: Forzamos el casteo a string para evitar que Laravel
+    // intente convertir la hora en un objeto DateTime incompleto.
+    protected $casts = [
+        'fecha' => 'date:Y-m-d',
+        'hora_entrada' => 'string',
+        'hora_salida' => 'string',
+    ];
+    protected $appends = ['horas_extras', 'horas_trabajadas'];
     // 🔥 ESTO ES NUEVO: La lógica matemática de las horas extras
     public function getHorasExtrasAttribute()
     {
@@ -43,6 +56,20 @@ class Asistencia extends Model
         }
 
         return 0;
+    }
+    public function getHorasTrabajadasAttribute()
+    {
+        if (!$this->hora_entrada || !$this->hora_salida || $this->hora_salida === '00:00:00') {
+            return 0; // Si no ha marcado salida, retorna 0
+        }
+        try {
+            $entrada = Carbon::parse($this->hora_entrada);
+            $salida = Carbon::parse($this->hora_salida);
+            $minutos = $entrada->diffInMinutes($salida);
+            return round($minutos / 60, 2); // Retorna en decimales (ej: 8.5)
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 
     public function trabajador()

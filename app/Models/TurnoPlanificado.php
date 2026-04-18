@@ -20,16 +20,20 @@ class TurnoPlanificado extends Model
         'estado',
         'es_nocturno',
         'tipo_registro',
-        'area_id'
+        'area_id',
+        'cargos_ids' // 🔥 NUEVO CAMPO
     ];
 
-    // Relación: Un turno tiene muchas asistencias
+    // 🔥 Le dice a Laravel que convierta el JSON a Array automáticamente
+    protected $casts = [
+        'cargos_ids' => 'array'
+    ];
+
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class, 'turno_id');
     }
 
-    
     public function areaMaestra()
     {
         return $this->belongsTo(Area::class, 'area_id');
