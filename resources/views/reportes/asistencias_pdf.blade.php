@@ -134,7 +134,8 @@
                             
                             // Mapeo de letra según estado
                             $letra = '';
-                            if($estado == 'Presente') $letra = 'P';
+                            if($estado == 'Presente' || $estado == 'Puntual') $letra = 'P';
+                           //  elseif($estado == 'Puntual') $letra = 'p';
                             elseif($estado == 'Tardanza') $letra = 'T';
                             elseif($estado == 'Falta') $letra = 'F';
                             
