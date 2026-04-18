@@ -12,6 +12,8 @@ use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\TurnoPlanificadoController;
 use App\Http\Controllers\MaestrosController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OperacionesController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -108,3 +110,16 @@ Route::get('/reportes/general/pdf', [AsistenciaController::class, 'exportarPDF']
 Route::get('/reportes/general/excel', [AsistenciaController::class, 'exportarExcel']); // Consolidado Excel
 Route::get('/reportes/detallado/pdf', [AsistenciaController::class, 'exportarDetalladoPDF']); // Detallado PDF
 Route::get('/reportes/detallado/excel', [AsistenciaController::class, 'exportarDetalladoExcel']); // Detallado Excel
+Route::get('/asistencias/dashboard/metricas', [AsistenciaController::class, 'dashboardMetricas']);
+Route::get('/asistencias/hoy', [AsistenciaController::class, 'registrosHoy']); // Ajusta esta URL si tu servicio de Angular usa una diferente para la actividad reciente
+
+// ==========================================
+// 🏭 CENTRO DE OPERACIONES (PLANTA)
+// ==========================================
+Route::prefix('operaciones')->group(function () {
+    Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
+    Route::post('/lotes', [OperacionesController::class, 'iniciarLote']);
+    Route::post('/muestreos', [OperacionesController::class, 'registrarMuestreo']);
+    Route::post('/pesajes', [OperacionesController::class, 'registrarPesaje']);
+    Route::get('/lotes/{id}/metricas', [OperacionesController::class, 'metricasEnVivo']);
+});

@@ -299,4 +299,62 @@ class AsistenciaController extends Controller
             ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
             ->header('Content-Disposition', 'attachment; filename="Detallado_Asistencias.xls"');
     }
+    // ==========================================
+    // 📊 DASHBOARD: MÉTRICAS DIARIAS
+    // ==========================================
+    public function dashboardMetricas()
+    {
+        $hoy = Carbon::now()->toDateString();
+
+        // 1. Total de personal registrado
+        $totalPersonal = Trabajador::count();
+
+        // 2. Asistencias de hoy
+        $asistenciasHoy = Asistencia::where('fecha', $hoy)->get();
+
+        $presentesHoy = $asistenciasHoy->count();
+        $tardanzasHoy = $asistenciasHoy->where('estado', 'Tardanza')->count();
+        $faltasHoy = $totalPersonal > 0 ? ($totalPersonal - $presentesHoy) : 0;
+
+        // 3. Porcentaje de asistencia
+        $porcentaje = $totalPersonal > 0 ? round(($presentesHoy / $totalPersonal) * 100, 1) : 0;
+
+        // 4. Agrupado por áreas para el gráfico de dona
+        $asistenciasConArea = Asistencia::with('trabajador.areaMaestra')->where('fecha', $hoy)->get();
+        
+        $porArea = $asistenciasConArea->groupBy(function($item) {
+            return $item->trabajador->areaMaestra->nombre ?? 'Sin Área';
+        })->map(function($grupo, $area) {
+            return [
+                'area' => $area,
+                'cantidad' => $grupo->count()
+            ];
+        })->values();
+
+        return response()->json([
+            'total_personal' => $totalPersonal,
+            'presentes_hoy' => $presentesHoy,
+            'tardanzas_hoy' => $tardanzasHoy,
+            'faltas_hoy' => $faltasHoy,
+            'porcentaje_asistencia' => $porcentaje,
+            'por_area' => $porArea
+        ]);
+    }
+
+    // ==========================================
+    // 🚀 DASHBOARD: ACTIVIDAD RECIENTE (HOY)
+    // ==========================================
+    public function registrosHoy()
+    {
+        $hoy = Carbon::now()->toDateString();
+        
+        $asistencias = Asistencia::with(['trabajador.areaMaestra'])
+            ->where('fecha', $hoy)
+            ->orderBy('hora_entrada', 'desc') // Los más recientes primero
+            ->get();
+
+        return response()->json([
+            'data' => $asistencias
+        ]);
+    }
 }
