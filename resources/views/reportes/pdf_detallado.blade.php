@@ -49,7 +49,7 @@
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $asistencia->trabajador->dni }}</td>
                 <td class="text-left">{{ mb_strtoupper($asistencia->trabajador->nombres . ' ' . $asistencia->trabajador->apellidos) }}</td>
-                <td>{{ $asistencia->trabajador->area }}</td>
+                <td>{{ $a->trabajador->areaMaestra->nombre ?? 'N/A' }}</td>
                 <td>{{ \Carbon\Carbon::parse($asistencia->fecha)->format('d/m/Y') }}</td>
                 <td>{{ $asistencia->hora_ingreso ?? '--:--' }}</td>
                 <td>{{ $asistencia->hora_salida ?? '--:--' }}</td>

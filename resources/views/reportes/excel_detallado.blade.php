@@ -28,9 +28,9 @@
         <tr>
             <td style="border: 1px solid #000;">{{ $a->trabajador->dni }}</td>
             <td style="border: 1px solid #000;">{{ $a->trabajador->nombres }} {{ $a->trabajador->apellidos }}</td>
-            <td style="border: 1px solid #000;">{{ $a->trabajador->area }}</td>
+            <td style="border: 1px solid #000;">{{ $a->trabajador->areaMaestra->nombre ?? 'N/A' }}</td>
             <td style="border: 1px solid #000;">{{ $a->fecha }}</td>
-            <td style="border: 1px solid #000;">{{ $a->hora_ingreso }}</td>
+            <td style="border: 1px solid #000;">{{ $a->hora_entrada }}</td>
             <td style="border: 1px solid #000;">{{ $a->hora_salida ?? '---' }}</td>
             <td style="border: 1px solid #000; font-weight: bold; text-align: center;">{{ $a->horas_trabajadas ?? '0.00' }}</td>
             <td style="border: 1px solid #000; font-weight: bold; text-align: center;">{{ $a->horas_extras ?? '0.00' }}</td>

@@ -101,3 +101,10 @@ Route::prefix('asistencias')->group(function () {
     Route::post('/registrar', [AsistenciaController::class, 'registrar']);
     Route::post('/qr', [AsistenciaController::class, 'registrarQR']);
 });
+// En routes/api.php
+Route::get('/reportes/general/pdf', [AsistenciaController::class, 'exportarPDF']);
+Route::get('/reportes/general/excel', [AsistenciaController::class, 'exportarExcel']);
+Route::get('/reportes/general/pdf', [AsistenciaController::class, 'exportarPDF']); // Consolidado PDF
+Route::get('/reportes/general/excel', [AsistenciaController::class, 'exportarExcel']); // Consolidado Excel
+Route::get('/reportes/detallado/pdf', [AsistenciaController::class, 'exportarDetalladoPDF']); // Detallado PDF
+Route::get('/reportes/detallado/excel', [AsistenciaController::class, 'exportarDetalladoExcel']); // Detallado Excel
