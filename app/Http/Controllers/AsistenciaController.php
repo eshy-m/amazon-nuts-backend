@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\Validator;
 
 class AsistenciaController extends Controller
 {
-   public function registrar(Request $request)
+    // ==========================================
+    // ✍️ 1. REGISTRAR ASISTENCIA (MANUAL)
+    // ==========================================
+    public function registrar(Request $request)
     {
         // 1. Validación básica
         $validator = Validator::make($request->all(), [
@@ -23,7 +26,7 @@ class AsistenciaController extends Controller
         }
 
         // 2. Identificar al trabajador (por ID o DNI)
-        $trabajador = Trabajador::with(['areaMaestra'])
+        $trabajador = Trabajador::with(['areaMaestra', 'cargoMaestro'])
             ->where('id', $request->trabajador_id)
             ->orWhere('dni', $request->trabajador_id)
             ->first();
@@ -34,7 +37,7 @@ class AsistenciaController extends Controller
 
         $ahora = Carbon::now();
         $fechaActual = $ahora->toDateString();
-        $horaActual = $ahora->format('H:i:s'); // Formato exacto HH:MM:SS para MySQL TIME
+        $horaActual = $ahora->format('H:i:s'); 
 
         // 3. Buscar turno activo para el área
         $turno = TurnoPlanificado::where('area_id', $trabajador->area_id)
@@ -56,13 +59,15 @@ class AsistenciaController extends Controller
 
         // --- LÓGICA DE ENTRADA ---
         if (!$asistencia) {
-            $horaConfigurada = Carbon::parse($turno->hora_entrada);
-            $tolerancia = $turno->tolerancia_minutos ?? 0;
+            $horaEntradaTurno = Carbon::parse($turno->hora_entrada);
+            $horaMarcada = Carbon::parse($horaActual);
             
-            // Si la hora actual supera la entrada + tolerancia -> Tardanza
-            $estado = $ahora->gt($horaConfigurada->addMinutes($tolerancia)) ? 'Tardanza' : 'Presente';
+            // Si marca hasta 15 min después del turno es Puntual, si no, Tardanza
+            $estado = 'Puntual';
+            if ($horaMarcada->gt($horaEntradaTurno->copy()->addMinutes(15))) {
+                $estado = 'Tardanza';
+            }
 
-            // Usamos create para asegurar que se apliquen los $fillable y $casts
             $nuevaAsistencia = Asistencia::create([
                 'trabajador_id' => $trabajador->id,
                 'turno_id'      => $turno->id,
@@ -74,7 +79,7 @@ class AsistenciaController extends Controller
             return response()->json([
                 'status'  => 'success',
                 'message' => 'ENTRADA MARCADA: ' . $estado,
-                'data'    => $nuevaAsistencia->load('trabajador.areaMaestra')
+                'data'    => $nuevaAsistencia->load(['trabajador.areaMaestra', 'trabajador.cargoMaestro', 'turno'])
             ]);
         }
 
@@ -86,7 +91,7 @@ class AsistenciaController extends Controller
             return response()->json([
                 'status'  => 'success',
                 'message' => 'SALIDA MARCADA EXITOSAMENTE',
-                'data'    => $asistencia->load('trabajador.areaMaestra')
+                'data'    => $asistencia->load(['trabajador.areaMaestra', 'trabajador.cargoMaestro', 'turno'])
             ]);
         }
 
@@ -95,91 +100,95 @@ class AsistenciaController extends Controller
             'message' => 'Ya registraste entrada y salida el día de hoy.'
         ]);
     }
+
+    // ==========================================
+    // 📷 2. REGISTRAR ASISTENCIA POR QR
+    // ==========================================
+    public function registrarQR(Request $request)
+    {
+        // Funciona exactamente igual que registrar(), reutilizamos la lógica
+        return $this->registrar($request);
+    }
+
+    // ==========================================
+    // 🕒 3. LISTAR ASISTENCIAS DE HOY
+    // ==========================================
     public function hoy()
     {
         $fechaActual = Carbon::now()->toDateString();
-        $asistencias = Asistencia::with(['trabajador.areaMaestra', 'turno'])
+        
+        // Agregamos cargoMaestro aquí
+        $asistencias = Asistencia::with(['trabajador.areaMaestra', 'trabajador.cargoMaestro', 'turno'])
             ->where('fecha', $fechaActual)
             ->orderBy('updated_at', 'desc')
             ->get();
-        return response()->json(['status' => 'success', 'data' => $asistencias]);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $asistencias
+        ]);
     }
+
     // ==========================================
-    // 📊 5. OBTENER REPORTES HISTÓRICOS (FILTRO POR FECHAS)
+    // 📊 4. OBTENER REPORTES HISTÓRICOS 
     // ==========================================
     public function reportes(Request $request)
     {
-        // 1. Recibimos las fechas desde Angular
         $fechaInicio = $request->query('fecha_inicio');
         $fechaFin = $request->query('fecha_fin');
 
-        // 2. Preparamos la consulta incluyendo las relaciones para que se vea el Área
-        $query = Asistencia::with(['trabajador.areaMaestra', 'turno']);
+        // Agregamos cargoMaestro aquí
+        $query = Asistencia::with(['trabajador.areaMaestra', 'trabajador.cargoMaestro', 'turno']);
 
-        // 3. Aplicamos el filtro de fechas si Angular las envió
         if ($fechaInicio && $fechaFin) {
             $query->whereBetween('fecha', [$fechaInicio, $fechaFin]);
         }
 
-        // 4. Obtenemos los datos ordenados (los más recientes primero)
         $reportes = $query->orderBy('fecha', 'desc')
                           ->orderBy('hora_entrada', 'asc')
                           ->get();
 
-        // 5. Devolvemos la respuesta al Frontend
         return response()->json([
             'status' => 'success',
-            'data' => $reportes
+            'data'   => $reportes
         ]);
     }
+
     // ==========================================
-    // 📄 6. EXPORTAR A PDF
-    // ==========================================
-    // ==========================================
-    // 📄 6. EXPORTAR A PDF (CONSOLIDADO - MATRIZ)
+    // 📄 5. EXPORTAR A PDF (CONSOLIDADO - MATRIZ)
     // ==========================================
     public function exportarPDF(Request $request)
     {
-        // 1. Obtener las fechas (Si no envían, tomamos el mes actual por defecto)
         $fechaInicio = $request->query('fecha_inicio', Carbon::now()->startOfMonth()->toDateString());
         $fechaFin = $request->query('fecha_fin', Carbon::now()->toDateString());
 
-        // 2. Traer todas las asistencias de ese periodo
-        $reportes = Asistencia::with(['trabajador'])
+        $reportes = Asistencia::with(['trabajador.areaMaestra', 'trabajador.cargoMaestro'])
             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
             ->orderBy('fecha', 'asc')
             ->get();
 
-        // 3. GENERAR LA LISTA DE DÍAS ($dias)
         $dias = [];
         $inicio = Carbon::parse($fechaInicio);
         $fin = Carbon::parse($fechaFin);
         
-        // Creamos un array con todos los días entre la fecha de inicio y fin
         for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
             $dias[] = $d->copy();
         }
 
-        // 4. GENERAR LA CUADRÍCULA AGRUPADA ($matriz)
         $matriz = [];
-        
-        // Obtenemos solo los trabajadores únicos que tienen asistencias en este periodo
         $trabajadores = $reportes->pluck('trabajador')->unique('id');
 
         foreach ($trabajadores as $trabajador) {
             if (!$trabajador) continue;
             
-            // Filtramos las asistencias solo de este trabajador
             $asistenciasTrabajador = $reportes->where('trabajador_id', $trabajador->id);
             $asistenciasMapa = [];
             
-            // Creamos un diccionario [ "2026-04-18" => "Presente" ]
             foreach ($asistenciasTrabajador as $asistencia) {
                 $fechaKey = Carbon::parse($asistencia->fecha)->format('Y-m-d');
                 $asistenciasMapa[$fechaKey] = $asistencia->estado;
             }
 
-            // Guardamos la fila del trabajador en la matriz
             $matriz[] = [
                 'nombre' => $trabajador->nombres . ' ' . $trabajador->apellidos,
                 'dni' => $trabajador->dni,
@@ -187,28 +196,24 @@ class AsistenciaController extends Controller
             ];
         }
 
-        // 5. Generar el PDF enviando $dias y $matriz a la vista
-        // Usamos setPaper para forzar que la hoja sea Horizontal (Landscape) y quepan las columnas
         $pdf = \PDF::loadView('reportes.asistencias_pdf', compact('dias', 'matriz', 'fechaInicio', 'fechaFin'))
                     ->setPaper('a4', 'landscape');
 
         return $pdf->download('Reporte_Consolidado_Asistencias.pdf');
     }
+
     // ==========================================
-    // 📊 7. EXPORTAR A EXCEL
-    // ==========================================
-    // ==========================================
-    // 📊 7. EXPORTAR A EXCEL (CONSOLIDADO NATIVO)
-    // ==========================================
-    // ==========================================
-    // 📊 EXPORTAR A EXCEL (CONSOLIDADO CON TU DISEÑO BLADE)
+    // 📊 6. EXPORTAR A EXCEL (CONSOLIDADO CON BLADE)
     // ==========================================
     public function exportarExcel(Request $request)
     {
         $fechaInicio = $request->query('fecha_inicio', Carbon::now()->startOfMonth()->toDateString());
         $fechaFin = $request->query('fecha_fin', Carbon::now()->toDateString());
 
-        $reportes = Asistencia::with(['trabajador'])->whereBetween('fecha', [$fechaInicio, $fechaFin])->orderBy('fecha', 'asc')->get();
+        $reportes = Asistencia::with(['trabajador.areaMaestra', 'trabajador.cargoMaestro'])
+            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+            ->orderBy('fecha', 'asc')
+            ->get();
 
         $dias = [];
         $inicio = Carbon::parse($fechaInicio);
@@ -217,7 +222,6 @@ class AsistenciaController extends Controller
             $dias[] = $d->copy();
         }
 
-        // Para el título: "MES DE ABRIL"
         $mes = Carbon::parse($fechaInicio)->translatedFormat('F'); 
 
         $trabajadores = $reportes->pluck('trabajador')->unique('id');
@@ -234,13 +238,11 @@ class AsistenciaController extends Controller
             foreach ($asistenciasTrabajador as $asistencia) {
                 $fechaKey = Carbon::parse($asistencia->fecha)->format('Y-m-d');
                 $letra = '';
-                if ($asistencia->estado == 'Presente') $letra = 'P';
+                if ($asistencia->estado == 'Presente' || $asistencia->estado == 'Puntual') $letra = 'P';
                 elseif ($asistencia->estado == 'Tardanza') $letra = 'T';
                 elseif ($asistencia->estado == 'Falta') $letra = 'F';
                 
                 $asistenciasMapa[$fechaKey] = $letra;
-                
-                // Sumamos las horas de la base de datos (asegurando que sean números)
                 $totalHoras += (float) $asistencia->horas_trabajadas;
                 $totalExtras += (float) $asistencia->horas_extras;
             }
@@ -254,21 +256,20 @@ class AsistenciaController extends Controller
             ];
         }
 
-        // 🔥 MAGIA: Renderizamos el HTML pero lo devolvemos como si fuera Excel
         return response(view('reportes.excel_consolidado', compact('dias', 'matriz', 'mes')))
             ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
             ->header('Content-Disposition', 'attachment; filename="Consolidado_Asistencias.xls"');
     }
 
     // ==========================================
-    // 📄 EXPORTAR A PDF (DETALLADO)
+    // 📄 7. EXPORTAR A PDF (DETALLADO)
     // ==========================================
     public function exportarDetalladoPDF(Request $request)
     {
         $inicio = $request->query('fecha_inicio', Carbon::now()->startOfMonth()->toDateString());
         $fin = $request->query('fecha_fin', Carbon::now()->toDateString());
 
-        $asistencias = Asistencia::with(['trabajador.areaMaestra'])
+        $asistencias = Asistencia::with(['trabajador.areaMaestra', 'trabajador.cargoMaestro'])
             ->whereBetween('fecha', [$inicio, $fin])
             ->orderBy('fecha', 'desc')
             ->orderBy('hora_entrada', 'asc')
@@ -281,14 +282,14 @@ class AsistenciaController extends Controller
     }
 
     // ==========================================
-    // 📊 EXPORTAR A EXCEL (DETALLADO CON TU DISEÑO BLADE)
+    // 📊 8. EXPORTAR A EXCEL (DETALLADO CON BLADE)
     // ==========================================
     public function exportarDetalladoExcel(Request $request)
     {
         $inicio = $request->query('fecha_inicio', Carbon::now()->startOfMonth()->toDateString());
         $fin = $request->query('fecha_fin', Carbon::now()->toDateString());
 
-        $asistencias = Asistencia::with(['trabajador.areaMaestra'])
+        $asistencias = Asistencia::with(['trabajador.areaMaestra', 'trabajador.cargoMaestro'])
             ->whereBetween('fecha', [$inicio, $fin])
             ->orderBy('fecha', 'desc')
             ->orderBy('hora_entrada', 'asc')
