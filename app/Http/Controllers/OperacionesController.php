@@ -14,7 +14,7 @@ class OperacionesController extends Controller
     // ==========================================
     // 1. INICIAR LOTE (Materia Prima)
     // ==========================================
-    public function iniciarLote(Request $request)
+   public function iniciarLote(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'cantidad_sacos' => 'required|numeric',
@@ -41,11 +41,21 @@ class OperacionesController extends Controller
     // ==========================================
     public function getLoteActivo()
     {
-        $lote = LoteProduccion::where('estado', 'En Proceso')->latest()->first();
-        
-        if (!$lote) return response()->json(['lote' => null], 404);
-        
-        return response()->json(['lote' => $lote]);
+        // Usamos 'with' para traer los pesajes asociados automáticamente
+        // Es vital que la relación 'pesajes' esté definida en el modelo LoteProduccion
+        $lote = LoteProduccion::where('estado', 'En Proceso')
+            ->with(['pesajes' => function($query) {
+                $query->orderBy('id', 'desc'); // Traemos los últimos pesajes primero
+            }])
+            ->first();
+
+        if (!$lote) {
+            return response()->json(['message' => 'No hay lote activo'], 404);
+        }
+
+        return response()->json([
+            'lote' => $lote
+        ]);
     }
 
     // ==========================================
@@ -149,5 +159,61 @@ class OperacionesController extends Controller
             ],
             'historial_muestreos' => $historial
         ]);
+    }
+    // ==========================================
+    // 6. KIOSCO: SINCRONIZACIÓN OFFLINE (Tablet)
+    // ==========================================
+    public function sincronizarPesajes(Request $request)
+    {
+        // La tablet enviará un ARRAY de pesajes, ya sea 1 (si hay buen internet) 
+        // o 20 de golpe (si se cortó la señal y regresó).
+        
+        $pesajesTablet = $request->input('pesajes'); // Recibimos el array
+        $guardados = [];
+
+        foreach ($pesajesTablet as $item) {
+            $pesaje = PesajeSeleccion::create([
+                'lote_id' => $item['lote_id'],
+                'categoria' => $item['categoria'], // Primera, Partida, Ojos
+                'peso' => $item['peso'],
+                // Guardamos la hora exacta en que el operario presionó el botón en la tablet,
+                // NO la hora en que llegó al servidor (por si se envió horas después sin internet)
+                'hora_registro' => $item['hora_registro'] ?? Carbon::now()->format('H:i:s')
+            ]);
+            
+            $guardados[] = $pesaje;
+        }
+
+        return response()->json([
+            'message' => 'Sincronización exitosa',
+            'registros_insertados' => count($guardados),
+            'data' => $guardados // Devolvemos los datos para que la tablet sepa sus IDs reales
+        ]);
+    }
+
+    // ==========================================
+    // 7. KIOSCO: BOTÓN DE PÁNICO (Regla de 5 Minutos)
+    // ==========================================
+    public function deshacerPesaje($id)
+    {
+        $pesaje = PesajeSeleccion::find($id);
+
+        if (!$pesaje) {
+            return response()->json(['error' => 'Registro no encontrado'], 404);
+        }
+
+        // Calculamos la diferencia en minutos desde que se creó en la Base de Datos
+        $minutosTranscurridos = Carbon::now()->diffInMinutes($pesaje->created_at);
+
+        if ($minutosTranscurridos <= 5) {
+            $pesaje->delete();
+            return response()->json(['message' => 'Registro anulado correctamente (Modo Pánico)']);
+        }
+
+        // Si pasó el tiempo, el Backend bloquea la eliminación
+        return response()->json([
+            'error' => 'Tiempo expirado.',
+            'detalle' => "Han pasado {$minutosTranscurridos} minutos. Ya no puedes eliminarlo, solicita al Ingeniero la corrección."
+        ], 403);
     }
 }

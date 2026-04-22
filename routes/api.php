@@ -14,7 +14,6 @@ use App\Http\Controllers\MaestrosController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperacionesController;
 
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -40,13 +39,22 @@ Route::prefix('trabajadores')->group(function () {
 });
 
 // ==========================================
-// 🕒 MÓDULO ASISTENCIAS
+// 🕒 MÓDULO ASISTENCIAS Y REPORTES
 // ==========================================
 Route::prefix('asistencias')->group(function () {
-    Route::get('/hoy', [AsistenciaController::class, 'hoy']);
-    Route::get('/reporte', [AsistenciaController::class, 'reporte']);
+    Route::get('/hoy', [AsistenciaController::class, 'registrosHoy']); // Unificado
+    Route::get('/reportes', [AsistenciaController::class, 'reportes']);
+    Route::get('/dashboard/metricas', [AsistenciaController::class, 'dashboardMetricas']);
     Route::post('/registrar', [AsistenciaController::class, 'registrar']);
     Route::post('/qr', [AsistenciaController::class, 'registrarQR']);
+});
+
+// Reportes globales
+Route::prefix('reportes')->group(function () {
+    Route::get('/general/pdf', [AsistenciaController::class, 'exportarPDF']);
+    Route::get('/general/excel', [AsistenciaController::class, 'exportarExcel']);
+    Route::get('/detallado/pdf', [AsistenciaController::class, 'exportarDetalladoPDF']);
+    Route::get('/detallado/excel', [AsistenciaController::class, 'exportarDetalladoExcel']);
 });
 
 // ==========================================
@@ -78,7 +86,26 @@ Route::prefix('maestros')->group(function () {
 });
 
 // ==========================================
-// ⚙️ UTILIDADES DEL SISTEMA (CORREGIDO)
+// 🏭 CENTRO DE OPERACIONES (PLANTA)
+// ==========================================
+Route::prefix('operaciones')->group(function () {
+    Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
+    Route::post('/lotes', [OperacionesController::class, 'iniciarLote']);
+    Route::post('/muestreos', [OperacionesController::class, 'registrarMuestreo']);
+    Route::post('/pesajes', [OperacionesController::class, 'registrarPesaje']);
+    Route::get('/lotes/{id}/metricas', [OperacionesController::class, 'metricasEnVivo']);
+});
+
+// ==========================================
+// 📱 KIOSCO (TABLET OPERARIOS)
+// ==========================================
+Route::prefix('kiosco')->group(function () {
+    Route::post('/pesajes/sincronizar', [OperacionesController::class, 'sincronizarPesajes']);
+    Route::delete('/pesajes/deshacer/{id}', [OperacionesController::class, 'deshacerPesaje']);
+});
+
+// ==========================================
+// ⚙️ UTILIDADES DEL SISTEMA
 // ==========================================
 Route::get('/limpiar-todo', function () {
     \Illuminate\Support\Facades\Artisan::call('config:clear');
@@ -90,36 +117,4 @@ Route::get('/limpiar-todo', function () {
 Route::get('/generar-storage-link', function () {
     \Illuminate\Support\Facades\Artisan::call('storage:link');
     return 'Enlace simbólico creado';
-});
-// ==========================================
-// 🕒 MÓDULO ASISTENCIAS
-// ==========================================
-Route::prefix('asistencias')->group(function () {
-    Route::get('/hoy', [AsistenciaController::class, 'hoy']);
-    
-    // 🔥 ESTA ES LA RUTA QUE FALTABA (En plural)
-    Route::get('/reportes', [AsistenciaController::class, 'reportes']); 
-    
-    Route::post('/registrar', [AsistenciaController::class, 'registrar']);
-    Route::post('/qr', [AsistenciaController::class, 'registrarQR']);
-});
-// En routes/api.php
-Route::get('/reportes/general/pdf', [AsistenciaController::class, 'exportarPDF']);
-Route::get('/reportes/general/excel', [AsistenciaController::class, 'exportarExcel']);
-Route::get('/reportes/general/pdf', [AsistenciaController::class, 'exportarPDF']); // Consolidado PDF
-Route::get('/reportes/general/excel', [AsistenciaController::class, 'exportarExcel']); // Consolidado Excel
-Route::get('/reportes/detallado/pdf', [AsistenciaController::class, 'exportarDetalladoPDF']); // Detallado PDF
-Route::get('/reportes/detallado/excel', [AsistenciaController::class, 'exportarDetalladoExcel']); // Detallado Excel
-Route::get('/asistencias/dashboard/metricas', [AsistenciaController::class, 'dashboardMetricas']);
-Route::get('/asistencias/hoy', [AsistenciaController::class, 'registrosHoy']); // Ajusta esta URL si tu servicio de Angular usa una diferente para la actividad reciente
-
-// ==========================================
-// 🏭 CENTRO DE OPERACIONES (PLANTA)
-// ==========================================
-Route::prefix('operaciones')->group(function () {
-    Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
-    Route::post('/lotes', [OperacionesController::class, 'iniciarLote']);
-    Route::post('/muestreos', [OperacionesController::class, 'registrarMuestreo']);
-    Route::post('/pesajes', [OperacionesController::class, 'registrarPesaje']);
-    Route::get('/lotes/{id}/metricas', [OperacionesController::class, 'metricasEnVivo']);
 });
