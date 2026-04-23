@@ -39,12 +39,11 @@ class OperacionesController extends Controller
     // ==========================================
     // 2. OBTENER MÉTRICAS Y KPIs (Dashboard del Ingeniero)
     // ==========================================
-    public function getMetricas()
+   public function getMetricas()
 {
-    // 1. Buscamos el lote. Si no se define aquí, el sistema "explota"
-    $loteActivo = LoteProduccion::where('estado', 'Abierto')->first();
+    // 1. Buscamos el lote activo
+    $loteActivo = LoteProduccion::where('estado', 'En Proceso')->first();
 
-    // 2. Si no hay lote, devolvemos una estructura vacía para que Angular no de error
     if (!$loteActivo) {
         return response()->json([
             'lote' => null,
@@ -55,17 +54,32 @@ class OperacionesController extends Controller
         ]);
     }
 
-    // 3. Si hay lote, traemos los muestreos incluyendo el nuevo campo
+    // 2. Obtenemos los muestreos del lote
     $muestreos = MuestreoCalibracion::where('lote_id', $loteActivo->id)
         ->orderBy('created_at', 'desc')
         ->get();
 
-    // ... aquí sigue tu lógica de KPIs (asegúrate de que usen $loteActivo->id) ...
+    // 3. Calculamos los KPIs reales para que no salga "Undefined variable"
+    $totalEntera = $muestreos->sum('peso_entera');
+    $totalPartida = $muestreos->sum('peso_partida');
+    $totalProcesado = $totalEntera + $totalPartida;
     
+    // Evitamos división por cero para el porcentaje
+    $porcentajePartida = $totalProcesado > 0 ? ($totalPartida * 100) / $totalProcesado : 0;
+
+    $kpis = [
+        'total_primera' => $totalEntera,
+        'total_partida' => $totalPartida,
+        'total_procesado' => $totalProcesado,
+        'porcentaje_partida_muestreo' => round($porcentajePartida, 2),
+        'alerta_partida' => $porcentajePartida > 13 // Alerta si supera el 13%
+    ];
+
+    // 4. Retornamos la respuesta completa
     return response()->json([
         'lote' => $loteActivo,
         'metricas' => [
-            'kpis' => $tusKpisCalculados, 
+            'kpis' => $kpis,
             'historial_muestreos' => $muestreos
         ]
     ]);
