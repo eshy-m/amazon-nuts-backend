@@ -3,7 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Importación de Controladores
+// ==========================================
+// 📥 IMPORTACIÓN DE CONTROLADORES
+// ==========================================
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PageContentController;
 use App\Http\Controllers\ContactController;
@@ -13,6 +15,7 @@ use App\Http\Controllers\TurnoPlanificadoController;
 use App\Http\Controllers\MaestrosController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperacionesController;
+use App\Http\Controllers\SecadoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,14 +24,14 @@ use App\Http\Controllers\OperacionesController;
 */
 
 // ==========================================
-// 🌐 RUTAS PÚBLICAS
+// 🌐 1. RUTAS PÚBLICAS Y AUTENTICACIÓN
 // ==========================================
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/pages/{slug}', [PageContentController::class, 'getPageBySlug']);
 Route::post('/contact', [ContactController::class, 'store']);
+Route::get('/pages/{slug}', [PageContentController::class, 'getPageBySlug']);
 
 // ==========================================
-// 👨‍🔧 MÓDULO TRABAJADORES
+// 👨‍🔧 2. RECURSOS HUMANOS (Trabajadores, Asistencia y Turnos)
 // ==========================================
 Route::prefix('trabajadores')->group(function () {
     Route::get('/estadisticas', [TrabajadorController::class, 'estadisticas']);
@@ -38,74 +41,74 @@ Route::prefix('trabajadores')->group(function () {
     Route::delete('/{id}', [TrabajadorController::class, 'destroy']);
 });
 
-// ==========================================
-// 🕒 MÓDULO ASISTENCIAS Y REPORTES
-// ==========================================
-Route::prefix('asistencias')->group(function () {
-    Route::get('/hoy', [AsistenciaController::class, 'registrosHoy']); // Unificado
-    Route::get('/reportes', [AsistenciaController::class, 'reportes']);
-    Route::get('/dashboard/metricas', [AsistenciaController::class, 'dashboardMetricas']);
-    Route::post('/registrar', [AsistenciaController::class, 'registrar']);
-    Route::post('/qr', [AsistenciaController::class, 'registrarQR']);
+Route::prefix('asistencia')->group(function () {
+    Route::get('/hoy', [AsistenciaController::class, 'asistenciaHoy']);
+    Route::post('/registrar', [AsistenciaController::class, 'registrarAsistencia']);
 });
 
-// Reportes globales
-Route::prefix('reportes')->group(function () {
-    Route::get('/general/pdf', [AsistenciaController::class, 'exportarPDF']);
-    Route::get('/general/excel', [AsistenciaController::class, 'exportarExcel']);
-    Route::get('/detallado/pdf', [AsistenciaController::class, 'exportarDetalladoPDF']);
-    Route::get('/detallado/excel', [AsistenciaController::class, 'exportarDetalladoExcel']);
-});
-
-// ==========================================
-// 📅 MÓDULO PLANIFICACIÓN (TURNOS)
-// ==========================================
 Route::prefix('turnos')->group(function () {
     Route::get('/', [TurnoPlanificadoController::class, 'index']);
     Route::post('/', [TurnoPlanificadoController::class, 'store']);
     Route::put('/{id}', [TurnoPlanificadoController::class, 'update']);
     Route::delete('/{id}', [TurnoPlanificadoController::class, 'destroy']);
-    Route::put('/{id}/cerrar', [TurnoPlanificadoController::class, 'cerrarTurno']);
-    Route::post('/auto-cierre', [TurnoPlanificadoController::class, 'autoCierre']);
-    Route::get('/reporte/general/pdf', [TurnoPlanificadoController::class, 'descargarGeneralPDF']);
 });
 
 // ==========================================
-// 📊 DASHBOARD
+// 📊 3. DATOS GENERALES (Dashboard Admin y Maestros)
 // ==========================================
-Route::get('/dashboard/kpis', [DashboardController::class, 'getKpis']);
+Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+Route::get('/maestros', [MaestrosController::class, 'index']);
 
 // ==========================================
-// 🛠️ TABLAS MAESTRAS
+// ⚙️ 4. PANEL DEL INGENIERO (Control de Operaciones)
 // ==========================================
-Route::prefix('maestros')->group(function () {
-    Route::get('/cargos', [MaestrosController::class, 'getCargos']);
-    Route::post('/cargos', [MaestrosController::class, 'storeCargo']);
-    Route::get('/areas', [MaestrosController::class, 'getAreas']);
-    Route::post('/areas', [MaestrosController::class, 'storeArea']);
-});
-
 // ==========================================
 // 🏭 CENTRO DE OPERACIONES (PLANTA)
 // ==========================================
+// Agrupamos bajo 'operaciones' para que coincida con: ${this.apiUrl}/operaciones/...
 Route::prefix('operaciones')->group(function () {
+    
+    // 1. Lotes
     Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
-    Route::post('/lotes', [OperacionesController::class, 'iniciarLote']);
+   // Route::post('/lotes', [OperacionesController::class, 'iniciarLote']);
+    Route::post('/iniciar-lote', [OperacionesController::class, 'iniciarLote']);
+    Route::put('/lotes/{id}/cerrar', [OperacionesController::class, 'cerrarLote']);
+
+    // 2. Muestreos (Se cambió a plural para evitar el error 405)
     Route::post('/muestreos', [OperacionesController::class, 'registrarMuestreo']);
-    Route::post('/pesajes', [OperacionesController::class, 'registrarPesaje']);
-    Route::get('/lotes/{id}/metricas', [OperacionesController::class, 'metricasEnVivo']);
+    
+    // 3. Pesajes (Desde la Tablet)
+    Route::post('/pesajes', [OperacionesController::class, 'guardarPesaje']);
+    
+    // 4. Métricas (Dashboard Ingeniero)
+    Route::get('/metricas', [OperacionesController::class, 'getMetricas']);
+    Route::get('/lotes/{id}/metricas-vivo', [OperacionesController::class, 'metricasEnVivo']);
 });
 
 // ==========================================
-// 📱 KIOSCO (TABLET OPERARIOS)
+// 📱 5. RUTAS DE LA TABLET (Área de Selección / Kiosco)
 // ==========================================
-Route::prefix('kiosco')->group(function () {
+// A. Rutas directas (Sin prefijo, tal como lo pide Angular)
+Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
+Route::post('/pesajes', [OperacionesController::class, 'guardarPesaje']);
+
+// B. Rutas secundarias del Kiosco (Deshacer pesajes y modo offline)
+Route::prefix('terminales')->group(function () {
     Route::post('/pesajes/sincronizar', [OperacionesController::class, 'sincronizarPesajes']);
     Route::delete('/pesajes/deshacer/{id}', [OperacionesController::class, 'deshacerPesaje']);
 });
 
 // ==========================================
-// ⚙️ UTILIDADES DEL SISTEMA
+// 🌡️ 6. ÁREA DE SECADO (Hornos)
+// ==========================================
+Route::prefix('secado')->group(function () {
+    Route::get('/activos', [SecadoController::class, 'getProcesosActivos']);
+    Route::post('/iniciar', [SecadoController::class, 'iniciarSecado']);
+    Route::put('/finalizar/{id}', [SecadoController::class, 'finalizarSecado']);
+});
+
+// ==========================================
+// 🛠️ 7. UTILIDADES DE MANTENIMIENTO DEL SISTEMA
 // ==========================================
 Route::get('/limpiar-todo', function () {
     \Illuminate\Support\Facades\Artisan::call('config:clear');
