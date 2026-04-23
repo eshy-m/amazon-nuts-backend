@@ -219,4 +219,34 @@ public function getMetricas()
             return response()->json(['error' => 'Fallo al buscar lote activo: ' . $e->getMessage()], 500);
         }
     }
+    // OperacionesController.php
+
+// 1. Cambiamos enviarASecado para que el estado sea 'En Secado'
+public function enviarASecado($id) {
+    $lote = LoteProduccion::findOrFail($id);
+    $lote->update(['estado' => 'En Secado']); // <--- Cambia de 'Finalizado' a 'En Secado'
+    return response()->json(['message' => 'Lote enviado a hornos']);
+}
+
+// 2. Ajustamos la búsqueda del lote activo para el área de Secado
+// ==========================================
+    // OBTENER LOTE PARA LA PANTALLA DE SECADO
+    // ==========================================
+    public function getLoteActivo_Secado()
+    {
+        try {
+            // Buscamos específicamente el lote que el Ingeniero mandó a secado
+            $lote = LoteProduccion::where('estado', 'En Secado')->first();
+            
+            // Si no hay ninguno, devolvemos null tranquilamente
+            if (!$lote) {
+                return response()->json(null, 200);
+            }
+            
+            return response()->json($lote, 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Fallo al buscar lote en secado: ' . $e->getMessage()], 500);
+        }
+    }
 }
