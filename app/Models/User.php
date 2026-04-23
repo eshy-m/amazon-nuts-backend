@@ -49,4 +49,10 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    // En User.php
+public function trabajador()
+{
+    // Un usuario pertenece a un trabajador (o viceversa)
+    return $this->hasOne(Trabajador::class, 'user_id');
+}
 }

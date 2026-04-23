@@ -60,31 +60,26 @@ Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/maestros', [MaestrosController::class, 'index']);
 
 // ==========================================
-// ⚙️ 4. PANEL DEL INGENIERO (Control de Operaciones)
+// 🏭 CENTRO DE OPERACIONES (PLANTA E INGENIERÍA)
 // ==========================================
-// ==========================================
-// 🏭 CENTRO DE OPERACIONES (PLANTA)
-// ==========================================
-// Agrupamos bajo 'operaciones' para que coincida con: ${this.apiUrl}/operaciones/...
 Route::prefix('operaciones')->group(function () {
     
-    // 1. Lotes
-    Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
-   // Route::post('/lotes', [OperacionesController::class, 'iniciarLote']);
+    // Rutas para el Lote
+    Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']); 
     Route::post('/iniciar-lote', [OperacionesController::class, 'iniciarLote']);
     Route::put('/lotes/{id}/cerrar', [OperacionesController::class, 'cerrarLote']);
 
-    // 2. Muestreos (Se cambió a plural para evitar el error 405)
+    // Métricas y Muestreos (Panel Admin)
+    Route::get('/metricas', [OperacionesController::class, 'getMetricas']);
     Route::post('/muestreos', [OperacionesController::class, 'registrarMuestreo']);
     
-    // 3. Pesajes (Desde la Tablet)
+    // Pesajes (Tablet y Admin)
     Route::post('/pesajes', [OperacionesController::class, 'guardarPesaje']);
-    
-    // 4. Métricas (Dashboard Ingeniero)
-    Route::get('/metricas', [OperacionesController::class, 'getMetricas']);
-    Route::get('/lotes/{id}/metricas-vivo', [OperacionesController::class, 'metricasEnVivo']);
 });
 
+// ✅ COMODÍN PARA LA TABLET (Si tu Angular de la tablet no usa el prefijo /operaciones)
+Route::get('/lotes/activo', [OperacionesController::class, 'getLoteActivo']);
+Route::post('/pesajes', [OperacionesController::class, 'guardarPesaje']);
 // ==========================================
 // 📱 5. RUTAS DE LA TABLET (Área de Selección / Kiosco)
 // ==========================================
@@ -120,4 +115,13 @@ Route::get('/limpiar-todo', function () {
 Route::get('/generar-storage-link', function () {
     \Illuminate\Support\Facades\Artisan::call('storage:link');
     return 'Enlace simbólico creado';
+});
+// ==========================================
+// 🛠️ DATOS MAESTROS (Áreas, Cargos, etc.)
+// ==========================================
+Route::prefix('maestros')->group(function () {
+    Route::get('/areas', [MaestrosController::class, 'getAreas']);
+    
+    // Si más adelante necesitas cargos, la ruta sería esta:
+    Route::get('/cargos', [MaestrosController::class, 'getCargos']);
 });

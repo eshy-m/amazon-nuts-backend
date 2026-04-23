@@ -22,7 +22,7 @@ class SecadoController extends Controller
                             ->get();
 
         return response()->json([
-            'lote_activo' => $loteActivo,
+            'lote' => $loteActivo,
             'procesos_activos' => $procesosSecando
         ]);
     }
@@ -52,14 +52,14 @@ class SecadoController extends Controller
         }
 
         $secado = ProcesoSecado::create([
-            'lote_id' => $request->lote_id,
-            'usuario_id' => 2, // Temporal: Aquí iría auth()->id() si usas tokens (Sanctum/JWT)
-            'categoria' => $request->categoria,
-            'temperatura_celsius' => $request->temperatura_celsius,
-            'peso_entrada_kg' => $request->peso_entrada_kg,
-            'hora_inicio' => Carbon::now(),
-            'estado' => 'Secando'
-        ]);
+        'lote_id' => $request->lote_id,
+        'usuario_id' => auth()->id() ?? 1, // Usa el ID del que inició sesión
+        'categoria' => $request->categoria,
+        'temperatura_celsius' => $request->temperatura_celsius,
+        'peso_entrada_kg' => $request->peso_entrada_kg,
+        'hora_inicio' => Carbon::now(),
+        'estado' => 'Secando'
+    ]);
 
         return response()->json(['message' => 'Ingreso al horno registrado', 'data' => $secado], 201);
     }

@@ -36,11 +36,11 @@ class AuthController extends Controller
 
     return response()->json([
         'access_token' => $token,
-        'token_type'   => 'Bearer',
-        'user' => [
-            'name'    => $user->name,
-            'email'   => $user->email,
-            'role_id' => $user->role_id // Importante para la redirección en Angular
+    'token_type'   => 'Bearer',
+    'user' => [
+        'id'      => $user->id,
+        'name'    => $user->name, // Aquí vendrá 'SECADO' o 'SELECCION'
+        'role_id' => $user->role_id
         ]
     ], 200);
 }
